@@ -1,12 +1,16 @@
 function ajaxRequest(n, t) {
     var i = null, e, f, l, o, s, r, c, u, h;
-    if (typeof XMLHttpRequest != "undefined") i = new XMLHttpRequest; else if (typeof ActiveXObject != "undefined") {
-        if (typeof arguments.callee.aciveXString != "string") for (e = ["MSXML2.XMLHttp.6.0", "MSXML2.XMLHttp.3.0", "MSXML2.XMLHttp"], f = 0, l = e.length; f < l; f++) try {
-            i = new ActiveXObject(e[f]);
-            arguments.callee.activeXString = e[f];
-            break
-        } catch (a) {
-        }
+    if (typeof XMLHttpRequest != "undefined")
+        i = new XMLHttpRequest;
+    else if (typeof ActiveXObject != "undefined") {
+        if (typeof arguments.callee.aciveXString != "string")
+            for (e = ["MSXML2.XMLHttp.6.0", "MSXML2.XMLHttp.3.0", "MSXML2.XMLHttp"], f = 0, l = e.length; f < l; f++)
+                try {
+                    i = new ActiveXObject(e[f]);
+                    arguments.callee.activeXString = e[f];
+                    break
+                } catch (a) {
+                }
         i == null && (i = new ActiveXObject(arguments.callee.activeXString))
     }
     i.onreadystatechange = function () {
@@ -98,73 +102,3 @@ var jsonCallback = {
         return ""
     }
 }
-
-
-var SearchCondition = {
-    "SearchType": "D",
-    "SearchRouteIndex": 0,
-    "DCity1": "SZX",
-    "DCity2": "",
-    "DCityId1": 30,
-    "DCityId2": 0,
-    "ACityId1": 2,
-    "ACityId2": 0,
-    "DCityName1": "深圳",
-    "DCityName2": "",
-    "DPort1": "",
-    "DPort2": "",
-    "ACity1": "SHA",
-    "ACityName1": "上海",
-    "APort1": "",
-    "ACity2": "SZX",
-    "ACityName2": "深圳",
-    "APort2": "",
-    "DDate1": "2018-04-10",
-    "DDate2": "2018-05-09",
-    "Quantity": 1,
-    "ClassType": "",
-    "ClassTypeForMultiRecommend": null,
-    "PassengerType": "ADU",
-    "AirlineCode": "",
-    "AirlineName": "",
-    "DTimeRange": "",
-    "DontDownloadData": false,
-    "IsCivil": false,
-    "HasChild": false,
-    "HasBaby": false,
-    "DirectChannel": null,
-    "IsSortByPrice": false,
-    "CPCityId": 30,
-    "CK": "E2797BA2B58BB6F8788C4E26DE9401D7",
-    "SaleChannel": "FlightOnline",
-    "IsShowOneNoCarAd": false,
-    "HotelsCouponAbtestVersionInsuranceId": "C2C30",
-    "FlightXAdditionalProductsFlag": 0,
-    "IsRoundTrip": false,
-    "VipGrade": 0,
-    "MemberLevel": "NA",
-    "IsNearAirportRecommond": "0",
-    "LogToken": "266dfbfd421d46cebc51cd5af13d5b97",
-    "ABTestInfo": [{"TestCode": "160225_fld_tsrec", "TestVersion": "D"}, {
-        "TestCode": "160802_fld_cashb",
-        "TestVersion": "B"
-    }, {"TestCode": "161213_fld_bdsle", "TestVersion": "B"}, {
-        "TestCode": "170823_fld_3xgbo",
-        "TestVersion": "B"
-    }, {"TestCode": "171213_fld_onqkc", "TestVersion": "A"}, {
-        "TestCode": "180122_fld_trtmo",
-        "TestVersion": "B"
-    }, {"TestCode": "180202_fld_tranf", "TestVersion": "B"}, {
-        "TestCode": "180328_fld_hotci",
-        "TestVersion": "C"
-    }, {"TestCode": "170207_fld_reagg", "TestVersion": "E"}],
-    "IsShowAirBus": false,
-    "TCity": null,
-    "IsArmy": "",
-    "IsRecommendationFromAgg": false,
-    "IsMultiRecommendation": false,
-    "RoundTripCombinationSwitch": false,
-    "RoundTripSelectedPrice": 0,
-    "OpenJawSwitch": true,
-    "RoundTripTransit2Switch": false
-};
