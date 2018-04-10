@@ -145,13 +145,27 @@ def get_parameter(this_city, other_city, proxy_addr, date1, date2):
     url = "http://flights.ctrip.com/booking/%s-%s---D-adu-1/?dayoffset=0&ddate1=%s&ddate2=%s" % (
         this_city, other_city, date1, date2)
 
-    # 设置代理
+    # 填充请求头
+    headers = {'Host': "flights.ctrip.com",
+               'User-Agent': "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/"
+                             "65.0.3325.181 Safari/537.36"}
+    req = Request(url, headers=headers, method='GET')
+
+    # 是否使用ip代理
     proxy = urllib.request.ProxyHandler({'http': proxy_addr})
     opener = urllib.request.build_opener(proxy, urllib.request.HTTPHandler)
     urllib.request.install_opener(opener)
 
+    # 使用http.cookiejar.CookieJar()创建CookieJar对象
+    cookie_jar = http.cookiejar.CookieJar()
+    # 使用HTTPCookieProcessor创建cookie处理器，并以其为参数构建opener对象
+    cookie = urllib.request.HTTPCookieProcessor(cookie_jar)
+    opener = urllib.request.build_opener(cookie)
+    # 将opener安装为全局
+    urllib.request.install_opener(opener)
+
     # 请求
-    response = urlopen(url)
+    response = urlopen(req)
     if response.status == 200:
         # 解析html
         res = response.read()
@@ -205,7 +219,7 @@ if __name__ == '__main__':
 
     # 写入文本
     filename = r"C:\Users\Administrator\Desktop\workspace\day0410\test5.txt"
-    f = open(filename, "a+", encoding="utf-8")
+    f1 = open(filename, "a+", encoding="utf-8")
 
     # 读取城市信息
     f2 = open(r"../resource/cities.txt", encoding="utf-8")
@@ -225,11 +239,14 @@ if __name__ == '__main__':
     """
         在指定出发日期内访问，遍历所有城市，两两之间的航班信息
     """
-    # ip代理池(以下已失效)
-    proxy_ip_pool = ['180.254.186.206', '59.110.221.78', '182.61.117.113', '183.232.223.10',
-                     '172.247.251.52', '120.79.64.64', '172.247.251.120', '63.175.159.29', '192.155.185.5',
-                     '13.92.101.180', '182.156.242.188', '192.155.185.169', '172.247.251.47', '172.247.251.24',
-                     '35.226.239.0', '128.199.192.236', ]
+    # ip代理池
+    proxy_ip_pool = []
+    f = open("../resource/available_ip.txt", encoding="utf-8")
+    while True:
+        address = f.readline().strip()
+        if not address:
+            break
+        proxy_ip_pool.append(address)
 
     for date in dates:
         # 在该日期下，双遍历（两城市之间的航班信息）
@@ -248,17 +265,19 @@ if __name__ == '__main__':
                     results = get_json2(city_num_list[i], city_num_list[j], date, end_date, ip_and_port, rk, CK, r)
                     print(results)
                     # 写入两城市间名字
-                    f.write("{0} 到 {1}\n".format(city_name_list[i], city_name_list[j]))
+                    f1.write("{0} 到 {1}\n".format(city_name_list[i], city_name_list[j]))
 
                     # 如果有航班信息
                     if results:
                         # 将所有航班信息写入文本
                         for result in results:
-                            f.write("出发时间 {0} --> 到达时间 {1} ，票价：{2}\n".format(result['start_time'],
-                                                                             result['arrivals_time'],
-                                                                             result['price']))
+                            f1.write("出发时间 {0} --> 到达时间 {1} ，票价：{2}\n".format(result['start_time'],
+                                                                              result['arrivals_time'],
+                                                                              result['price']))
                     else:
-                        f.write("暂无航班\n")
-                    f.write("\n")
-                    f.flush()
+                        f1.write("暂无航班\n")
+                    f1.write("\n")
+                    f1.flush()
+    f1.close()
+    f2.close()
     f.close()
