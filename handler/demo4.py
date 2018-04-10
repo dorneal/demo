@@ -8,6 +8,7 @@
 import http.cookiejar
 import json
 import random
+import telnetlib
 import urllib
 from urllib import parse
 from urllib.request import Request
@@ -19,10 +20,15 @@ from lxml import etree
     爬取携程指定起始位置、日期的机票信息
     缺点：抓包分析难，js脚本太多，加密的参数
     优点：快速，准确，易分析，灵活性强
+    
+    携程反爬机制：url前端加密参数（需要具体分析demo.js），短时间大访问量封ip（半个小时）。
+    目前存在问题：
+        速度太快，容易封ip
+        国际航班暂未分析出来
 """
 
 
-def get_json2(this_city, other_city, start_date, arrivals_date, rk, CK, r):
+def get_json2(this_city, other_city, start_date, arrivals_date, proxy_addr, rk, CK, r):
     """
     根据构造出的url获取到航班数据
     :param this_city: 出发城市
@@ -49,7 +55,8 @@ def get_json2(this_city, other_city, start_date, arrivals_date, rk, CK, r):
     }
     # 加工构造出的url参数
     url_data = urllib.parse.urlencode(url_dict)
-    # 填充url
+
+    # url添加参数
     url = "http://flights.ctrip.com/domesticsearch/search/SearchFirstRouteFlights?" + url_data
 
     # 填充请求头
@@ -61,9 +68,9 @@ def get_json2(this_city, other_city, start_date, arrivals_date, rk, CK, r):
     req = Request(url, headers=headers, method='GET')
 
     # 是否使用ip代理
-    # proxy = urllib.request.ProxyHandler({'http': proxy_addr})
-    # opener = urllib.request.build_opener(proxy, urllib.request.HTTPHandler)
-    # urllib.request.install_opener(opener)
+    proxy = urllib.request.ProxyHandler({'http': proxy_addr})
+    opener = urllib.request.build_opener(proxy, urllib.request.HTTPHandler)
+    urllib.request.install_opener(opener)
 
     # 使用http.cookiejar.CookieJar()创建CookieJar对象
     cookie_jar = http.cookiejar.CookieJar()
@@ -125,7 +132,7 @@ def get_json2(this_city, other_city, start_date, arrivals_date, rk, CK, r):
         return result_list
 
 
-def get_parameter(this_city, other_city, date1, date2):
+def get_parameter(this_city, other_city, proxy_addr, date1, date2):
     """
     获取重要的参数，构造url参数（逆向获取参数）
     :param date1:出发日期，格式示例：2016-05-13
@@ -137,10 +144,15 @@ def get_parameter(this_city, other_city, date1, date2):
     # 构造出url，第一次请求该url为了获取url的重要参数
     url = "http://flights.ctrip.com/booking/%s-%s---D-adu-1/?dayoffset=0&ddate1=%s&ddate2=%s" % (
         this_city, other_city, date1, date2)
+
+    # 设置代理
+    proxy = urllib.request.ProxyHandler({'http': proxy_addr})
+    opener = urllib.request.build_opener(proxy, urllib.request.HTTPHandler)
+    urllib.request.install_opener(opener)
+
     # 请求
     response = urlopen(url)
     if response.status == 200:
-
         # 解析html
         res = response.read()
         tree = etree.HTML(res)
@@ -163,8 +175,26 @@ def get_parameter(this_city, other_city, date1, date2):
         return rk, CK, r
     else:
         print('\033[1;31;40m')
-        print("航班信息为空")
+        print("响应失败！")
         print('\033[0m')
+
+
+def test_proxy_ip(ip_pool):
+    """
+    从代理池中选出一个可用的代理地址
+    :param ip_pool: 代理池
+    :return:
+    """
+    ip_port = random.choice(ip_pool)
+    ip = ip_port.split(":")[0]
+    port = ip_port.split(":")[1]
+    try:
+        telnetlib.Telnet(ip, port=port, timeout=10)
+    except:
+        print('connect failed')
+        test_proxy_ip(ip_pool)
+    else:
+        return ip_port
 
 
 if __name__ == '__main__':
@@ -174,14 +204,14 @@ if __name__ == '__main__':
     end_date = '2018-05-10'
 
     # 写入文本
-    filename = r"C:\Users\Administrator\Desktop\workspace\day0410\test4.txt"
+    filename = r"C:\Users\Administrator\Desktop\workspace\day0410\test5.txt"
     f = open(filename, "a+", encoding="utf-8")
 
     # 读取城市信息
     f2 = open(r"C:\Users\Administrator\Desktop\workspace\day0410\cities.txt", encoding="utf-8")
-    # 城市后缀编号列表
+    # 城市后缀编号列表（用于传递参数）
     city_num_list = []
-    # 城市名列表
+    # 城市名列表（用于写入提示信息）
     city_name_list = []
     while True:
         city = f2.readline().strip()
@@ -195,25 +225,34 @@ if __name__ == '__main__':
     """
         在指定出发日期内访问，遍历所有城市，两两之间的航班信息
     """
+    # ip代理池(以下已失效)
+    proxy_ip_pool = ['180.254.186.206', '59.110.221.78', '182.61.117.113', '183.232.223.10',
+                     '172.247.251.52', '120.79.64.64', '172.247.251.120', '63.175.159.29', '192.155.185.5',
+                     '13.92.101.180', '182.156.242.188', '192.155.185.169', '172.247.251.47', '172.247.251.24',
+                     '35.226.239.0', '128.199.192.236', ]
 
     for date in dates:
         # 在该日期下，双遍历（两城市之间的航班信息）
         for i in range(city_length):
             # 下标，从+1开始
             for j in range(i + 1, city_length):
+                # 随机从代理池中选取一个代理ip，并测试是否可用
+                ip_and_port = test_proxy_ip(proxy_ip_pool)
                 # 获取加密url参数
-                rk, CK, r = get_parameter(city_num_list[i], city_num_list[j], date1=date, date2=end_date)
+                rk, CK, r = get_parameter(city_num_list[i], city_num_list[j], ip_and_port, date, end_date)
                 print(date + "时:")
                 print("====================================")
-                # 如果不为空
+                # 如果url参数解析不为空，进行航班信息查询
                 if rk and CK and r:
                     # 进行航班信息加载及解析
-                    results = get_json2(city_num_list[i], city_num_list[j], date, end_date, rk, CK, r)
+                    results = get_json2(city_num_list[i], city_num_list[j], date, end_date, ip_and_port, rk, CK, r)
                     print(results)
                     # 写入两城市间名字
                     f.write("{0} 到 {1}\n".format(city_name_list[i], city_name_list[j]))
+
+                    # 如果有航班信息
                     if results:
-                        # 将所有航班信息写入
+                        # 将所有航班信息写入文本
                         for result in results:
                             f.write("出发时间 {0} --> 到达时间 {1} ，票价：{2}\n".format(result['start_time'],
                                                                              result['arrivals_time'],
