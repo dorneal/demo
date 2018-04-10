@@ -10,11 +10,11 @@ from lxml import etree
     按照携程的城市级联，解析提取存储到本地
 """
 
-f = open("../util/parse.html", encoding="utf-8")
+f = open("../resource/parse.html", encoding="utf-8")
 res = f.read()
 tree = etree.HTML(res)
 dd = tree.xpath("//dd")
-w = open(r"C:\Users\Administrator\Desktop\workspace\day0410\cities.txt", "a+", encoding="utf-8")
+w = open(r"../resource/cities.txt", "a+", encoding="utf-8")
 for d in dd:
     a = d.xpath("./a/@data")
     for data in a:

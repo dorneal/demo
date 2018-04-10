@@ -5,8 +5,8 @@
 # Time:2018.04.10 15:51
 import telnetlib
 
-f = open("../util/ip_pool.txt", encoding="utf-8")
-w = open("../util/available_ip.txt", "a+", encoding="utf-8")
+f = open("../resource/ip_pool.txt", encoding="utf-8")
+w = open("../resource/available_ip.txt", "a+", encoding="utf-8")
 good_ip = []
 while True:
     line = f.readline().strip()

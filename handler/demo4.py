@@ -208,7 +208,7 @@ if __name__ == '__main__':
     f = open(filename, "a+", encoding="utf-8")
 
     # 读取城市信息
-    f2 = open(r"C:\Users\Administrator\Desktop\workspace\day0410\cities.txt", encoding="utf-8")
+    f2 = open(r"../resource/cities.txt", encoding="utf-8")
     # 城市后缀编号列表（用于传递参数）
     city_num_list = []
     # 城市名列表（用于写入提示信息）
