@@ -15,19 +15,20 @@ function ajaxRequest(n, t) {
     }
     i.onreadystatechange = function () {
         try {
-            if (i.readyState == 4) if (i.status >= 200 && i.status < 300 || i.status == 304) {
-                var r = eval("(" + i.responseText + ")");
-                if (_searchCount_c == 0 && r && r.Error && (r.Error.Code == 104 || r.Error.Code == 1004) && (r.Error.Message == "" || !r.Error.Message)) {
-                    _searchCount_c++;
-                    setTimeout(function () {
-                        var i = n.split("&");
-                        i.pop();
-                        ajaxRequest(i.join("&") + "&rt=" + Math.random() * 1e3, t)
-                    }, 1e3);
-                    return
-                }
-                jsonCallback.done(r)
-            } else i.status != 0 && jsonCallback.onError()
+            if (i.readyState == 4)
+                if (i.status >= 200 && i.status < 300 || i.status == 304) {
+                    var r = eval("(" + i.responseText + ")");
+                    if (_searchCount_c == 0 && r && r.Error && (r.Error.Code == 104 || r.Error.Code == 1004) && (r.Error.Message == "" || !r.Error.Message)) {
+                        _searchCount_c++;
+                        setTimeout(function () {
+                            var i = n.split("&");
+                            i.pop();
+                            ajaxRequest(i.join("&") + "&rt=" + Math.random() * 1e3, t)
+                        }, 1e3);
+                        return
+                    }
+                    jsonCallback.done(r)
+                } else i.status != 0 && jsonCallback.onError()
         } catch (u) {
             jsonCallback.onError()
         }
@@ -37,7 +38,9 @@ function ajaxRequest(n, t) {
     (r.indexOf("ClassType=CF") == -1 || r.indexOf("ClassType=&") != -1) && (r += getStorage("FD_SearchPage_onlyCf") == "CF" ? "&ClassType=CF" : "");
     _searchCount_c > 0 && (c = t.split(".")[1], t = "0." + c.substring(1, c.length - 1));
     u = r.split("&");
+    /*=====================rk值======================*/
     h = r.indexOf("rk=") >= 0 || r.indexOf("rt=") >= 0 ? u.splice(u.length - 2, 1)[0] : u.pop();
+    /* ==================CK值======================*/
     u.push("CK=");
     h = h.split("=")[1];
     var fn = (function (u, r, k, t) {

@@ -18,13 +18,15 @@ from lxml import etree
 
 """
     爬取携程指定起始位置、日期的机票信息
-    缺点：抓包分析难，js脚本太多，加密的参数
+    缺点：抓包分析难，js脚本太多，加密的参数（携程自称OceanBall）
     优点：快速，准确，易分析，灵活性强
     
     携程反爬机制：url前端加密参数（需要具体分析demo.js），短时间大访问量封ip（半个小时）。
     目前存在问题：
         速度太快，容易封ip
         国际航班暂未分析出来
+        考虑到修改问题，代码暂未优化
+    本爬虫使用了“请求头填充、设置代理、cookie伪装、get数据填充”
 """
 
 
@@ -92,6 +94,7 @@ def get_json2(this_city, other_city, start_date, arrivals_date, proxy_addr, rk, 
     length2 = 0
     if dict_content['fis']:
         length = len(dict_content['fis'])
+    # 中转站信息
     if dict_content['tf']:
         length2 = len(dict_content['tf'])
 
