@@ -76,25 +76,31 @@ def get_json2(start_date, arrivals_date, rk, CK, r):
 
     # 解析json
     length = len(dict_content['fis'])
-    print("共{0}种机票选择".format(length))
-    result_list = []
-    for i in range(length):
-        result_dict = {}
-        start_time = dict_content['fis'][i][u'dt']
-        arrivals_time = dict_content['fis'][i][u'at']
-        price = dict_content['fis'][i][u'rtp']
+    if length == 0:
+        print('\033[1;31;40m')
+        print("返回为空，请检查是否存在问题！")
+        print('\033[0m')
+        return None
+    else:
+        print("共{0}种机票选择".format(length))
+        result_list = []
+        for i in range(length):
+            result_dict = {}
+            start_time = dict_content['fis'][i][u'dt']
+            arrivals_time = dict_content['fis'][i][u'at']
+            price = dict_content['fis'][i][u'rtp']
 
-        # 控制台打印出发时间,到达时间
-        # print(start_time + " ———— " + arrivals_time)
-        # 打印机票价格
-        # print("票价：" + str(price))
+            # 控制台打印出发时间,到达时间
+            # print(start_time + " ———— " + arrivals_time)
+            # 打印机票价格
+            # print("票价：" + str(price))
 
-        # 数据装填
-        result_dict['start_time'] = start_time
-        result_dict['arrivals_time'] = arrivals_time
-        result_dict['price'] = price
-        result_list.append(result_dict)
-    return result_list
+            # 数据装填
+            result_dict['start_time'] = start_time
+            result_dict['arrivals_time'] = arrivals_time
+            result_dict['price'] = price
+            result_list.append(result_dict)
+        return result_list
 
 
 def get_parameter(date1, date2):
@@ -108,32 +114,40 @@ def get_parameter(date1, date2):
     url = "http://flights.ctrip.com/booking/SZX-SHA---D-adu-1/?dayoffset=0&ddate1=%s&ddate2=%s" % (
         date1, date2)
     # 请求
-    res = urlopen(url).read()
-    # 解析html
-    tree = etree.HTML(res)
+    response = urlopen(url)
+    if response.status == 200:
 
-    # 解析响应的脚本，获取url，破解出重要url参数
-    pp = tree.xpath('''//body/script[1]/text()''')[0].split()
-    CK_original = pp[3][-34:-2]
-    CK = CK_original[0:5] + CK_original[13] + CK_original[5:13] + CK_original[14:]
-    rk = pp[-1][18:24]
-    num = random.random() * 10
-    num_str = "%.15f" % num
-    rk = num_str + rk
-    r = pp[-1][27:len(pp[-1]) - 3]
+        # 解析html
+        res = response.read()
+        tree = etree.HTML(res)
 
-    # 返回重要url参数
-    return rk, CK, r
+        # 解析响应的脚本，获取url，破解出重要url参数
+        pp = tree.xpath('''//body/script[1]/text()''')[0].split()
+        CK_original = pp[3][-34:-2]
+        CK = CK_original[0:5] + CK_original[13] + CK_original[5:13] + CK_original[14:]
+        rk = pp[-1][18:24]
+        num = random.random() * 10
+        num_str = "%.15f" % num
+        rk = num_str + rk
+        r = pp[-1][27:len(pp[-1]) - 3]
+
+        # 返回重要url参数
+        return rk, CK, r
+    else:
+        print('\033[1;31;40m')
+        print("返回为空，请检查是否存在问题！")
+        print('\033[0m')
+        return None
 
 
 if __name__ == '__main__':
     # 出发日期
-    dates = ['2018-04-10', '2018-04-20', '2018-04-22']
+    dates = ['2018-04-11', '2018-04-20', '2018-04-22']
     # 返程日期
     end_date = '2018-05-10'
 
     # 写入文本
-    filename = r"C:\Users\Administrator\Desktop\workspace\day0410\test.txt"
+    filename = r"C:\Users\Administrator\Desktop\workspace\day0410\test2.txt"
     f = open(filename, "a+", encoding="utf-8")
 
     for date in dates:
@@ -143,9 +157,9 @@ if __name__ == '__main__':
         results = get_json2(date, end_date, rk, CK, r)
         print(results)
         for result in results:
-            f.write("出发时间 {0} --> {1} 到达时间，票价：{2}\n".format(result['start_time'],
-                                                            result['arrivals_time'],
-                                                            result['price']))
+            f.write("出发时间 {0} --> 到达时间 {1} ，票价：{2}\n".format(result['start_time'],
+                                                             result['arrivals_time'],
+                                                             result['price']))
         f.write("\n")
         f.flush()
     f.close()
