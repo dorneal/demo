@@ -80,7 +80,6 @@ def get_json2(start_date, arrivals_date, rk, CK, r):
         print('\033[1;31;40m')
         print("返回为空，请检查是否存在问题！")
         print('\033[0m')
-        return None
     else:
         print("共{0}种机票选择".format(length))
         result_list = []
@@ -137,7 +136,6 @@ def get_parameter(date1, date2):
         print('\033[1;31;40m')
         print("返回为空，请检查是否存在问题！")
         print('\033[0m')
-        return None
 
 
 if __name__ == '__main__':
