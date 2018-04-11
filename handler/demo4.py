@@ -11,8 +11,8 @@ import telnetlib
 import urllib
 from urllib import parse
 from urllib.request import Request
-from urllib.request import urlopen
 
+import time
 from lxml import etree
 
 """
@@ -41,16 +41,11 @@ def filling_headers(url, this_city, other_city, start_date, arrivals_date, proxy
     :return: 响应对象
     """
     headers = {
-        'Accept': '*/*',
-        'Accept-Encoding': 'gzip, deflate',
-        'Accept-Language': 'zh-CN,zh;q=0.9',
-        'Connection': 'keep-alive',
         'Host': "flights.ctrip.com",
         'User-Agent': "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/"
                       "65.0.3325.181 Safari/537.36",
         'Referer': "http://flights.ctrip.com/booking/%s-%s---D-adu-1/?dayoffset=0&ddate1=%s&ddate2=%s" % (
             this_city, other_city, start_date, arrivals_date)}
-    req = Request(url=url, headers=headers, method='GET')
 
     # 是否使用ip代理
     proxy = urllib.request.ProxyHandler({'http': proxy_addr})
@@ -65,6 +60,8 @@ def filling_headers(url, this_city, other_city, start_date, arrivals_date, proxy
     # 将opener安装为全局
     urllib.request.install_opener(opener2)
 
+    req = urllib.request.Request(url=url, headers=headers, method='GET')
+
     # 返回响应
     return req
 
@@ -76,6 +73,7 @@ def get_flight_msg(this_city, other_city, start_date, arrivals_date, proxy_addr,
     :param other_city: 目的城市
     :param start_date:  出发时间
     :param arrivals_date:  到达时间
+    :param proxy_addr: 代理IP
     :param rk:  url参数
     :param CK:  url参数
     :param r:   url参数
@@ -105,11 +103,19 @@ def get_flight_msg(this_city, other_city, start_date, arrivals_date, proxy_addr,
     req = filling_headers(url, this_city, other_city, start_date, arrivals_date, proxy_addr)
 
     # 请求，响应结果
-    res = urlopen(req)
+    res = urllib.request.urlopen(req)
     # 读取解码
     content = res.read().decode("gbk")
     # 将结果转为json格式
     dict_content = json.loads(content)
+
+    # 如果出现错误
+    if dict_content['Error']:
+        if dict_content['Error']['Code'] == 103:
+            print(dict_content['Error']['Message'])
+        if dict_content['Error']['Code'] == 1004:
+            print("IP被封！")
+            return None
 
     # 解析json
     # 直达航班信息
@@ -158,17 +164,18 @@ def get_parameter(this_city, other_city, proxy_addr, date1, date2):
     :param date2:返程日期
     :param this_city: 出发城市
     :param other_city: 目的城市
+    :param proxy_addr: 代理IP
     :return:rk,CK,r url参数
     """
     # 构造出url，第一次请求该url为了获取url的重要参数
-    url = "http://flights.ctrip.com/booking/%s-%s---D-adu-1/?dayoffset=0&ddate1=%s&ddate2=%s" % (
+    url = "http://flights.ctrip.com/booking/%s-%s---D-adu-1/?dayoffset=0&ddate1=%s&ddate2=%s&searchtype=D" % (
         this_city, other_city, date1, date2)
 
     # 填充信息
     req = filling_headers(url, this_city, other_city, date1, date2, proxy_addr)
 
     # 请求
-    response = urlopen(req)
+    response = urllib.request.urlopen(req)
     if response.status == 200:
         # 解析html
         res = response.read()
@@ -192,6 +199,7 @@ def get_parameter(this_city, other_city, proxy_addr, date1, date2):
         return rk, CK, r
     else:
         print("响应失败！响应码{0}".format(response.status))
+        return '', '', ''
 
 
 def test_proxy_ip(ip_pool):
@@ -209,7 +217,7 @@ def test_proxy_ip(ip_pool):
     except:
         print('代理ip：{0} 不可用！'.format(ip_port))
         # 该ip不可用时，继续选取
-        test_proxy_ip(ip_pool)
+        return test_proxy_ip(ip_pool)
     else:
         return ip_port
 
@@ -218,10 +226,10 @@ if __name__ == '__main__':
     # 出发日期
     dates = ['2018-04-11']
     # 返程日期
-    end_date = '2018-05-10'
+    return_date = '2018-05-10'
 
     # 将航班信息保存到文本
-    filename = r"C:\Users\Administrator\Desktop\workspace\day0410\test5.txt"
+    filename = r"C:\Users\Administrator\Desktop\workspace\day0410\test7.txt"
     save_msg = open(filename, "a+", encoding="utf-8")
 
     # 读取城市信息
@@ -259,13 +267,18 @@ if __name__ == '__main__':
             for j in range(i + 1, city_count):
                 # 随机从代理池中选取一个代理ip，并测试是否可用
                 ip_and_port = test_proxy_ip(proxy_ip_pool)
+                # 限制爬取速度，速度太快容易被封ip
+                time.sleep(5)
+
                 # 获取加密url参数
-                rk, CK, r = get_parameter(city_num_list[i], city_num_list[j], ip_and_port, date, end_date)
+                rk, CK, r = get_parameter(city_num_list[i], city_num_list[j], ip_and_port, date, return_date)
 
                 # 如果url参数解析不为空，进行航班信息查询
                 if rk and CK and r:
+                    time.sleep(2)
                     # 进行航班信息加载及解析
-                    results = get_flight_msg(city_num_list[i], city_num_list[j], date, end_date, ip_and_port, rk, CK, r)
+                    results = get_flight_msg(city_num_list[i], city_num_list[j], date, return_date, ip_and_port, rk, CK,
+                                             r)
 
                     # 写入两城市间名字
                     save_msg.write("{0} 到 {1}\n".format(city_name_list[i], city_name_list[j]))

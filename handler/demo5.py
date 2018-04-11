@@ -3,18 +3,24 @@
 # Filename:demo5.py
 # Author:黄鹏
 # Time:2018.04.10 12:19
+import random
 import time
-from selenium import webdriver
+
+import re
 from lxml import etree
+
+from selenium import webdriver
 from selenium.common.exceptions import TimeoutException
+from bs4 import BeautifulSoup
 
 """
     使用selenium 爬取携程航班信息
     缺点：速度慢，解析需要等待js渲染，难分析提取想要的数据
     优点：不需要抓包信息，简单
 """
-driver = webdriver.Chrome()
-url = "http://flights.ctrip.com/booking/WUH-SZX---D-adu-1/?ddate1=2018-04-11&ddate2=2018-05-11"
+
+driver = webdriver.PhantomJS()
+url = "http://flights.ctrip.com/booking/WUH-SZX---D-adu-1/?ddate1=2018-04-30&ddate2=2018-05-11"
 
 # 设置超时时间
 driver.set_page_load_timeout(30)
@@ -25,7 +31,6 @@ except TimeoutException:
     driver.execute_script('window.stop()')
 
 # 获取城市输入，日期输入框
-# driver.find_element_by_xpath("//*[@id='radio_D']").click()
 start_city_input = driver.find_element_by_xpath("//*[@id='DCityName1']")
 arrivals_city_input = driver.find_element_by_xpath("//*[@id='ACityName1']")
 start_date_input = driver.find_element_by_xpath("//*[@id='DDate1']")
@@ -49,7 +54,7 @@ return_date_input.clear()
 # 填写输入框信息
 start_city_input.send_keys(city_list[0])
 arrivals_city_input.send_keys(city_list[1])
-start_date_input.send_keys("2018-04-11")
+start_date_input.send_keys("2018-04-12")
 return_date_input.send_keys("2018-05-11")
 
 # 等待一秒，提交
@@ -58,15 +63,23 @@ driver.find_element_by_xpath("//*[@id='btnReSearch']").click()
 
 # 等待三秒，获取所有搜索信息
 time.sleep(3)
-div_list = driver.find_element_by_xpath("//*[@id='J_flightlist2']/div")
+div_list = driver.find_elements_by_xpath("//*[@id='J_flightlist2']/div")
 
-# 进行解析，提取需要的信息
-div_parse_list = etree.HTML(div_list)
+bsObj = BeautifulSoup(driver.page_source, 'html.parser')
+script = bsObj.find_all('script', string=re.compile('var url'), type='text/javascript')[0]
 
-# TODO 存在解析问题，待解决
-for div in div_parse_list:
-    start_time = div.xpath("./div[2]/div[2]/div[1]/strong/text()").strip()
-    arrivals_time = div.xpath("./div[2]/div[4]/div[1]/strong/text()").strip()
-    ticks_price = div.xpath("./div[2]/div[8]/span/text()").strip()
-    print(start_time + "----" + arrivals_time)
-    print(ticks_price)
+# 解析响应的脚本，获取url，破解出重要url参数
+pp = script.split()
+
+CK_original = pp[3][-34:-2]
+CK = CK_original[0:5] + CK_original[13] + CK_original[5:13] + CK_original[14:]
+rk = pp[-1][18:24]
+num = random.random() * 10
+num_str = "%.15f" % num
+rk = num_str + rk
+r = pp[-1][27:len(pp[-1]) - 3]
+print(r, rk, CK)
+
+"""
+获取脚本段里面的url，再使用request进行连接，获取到数据，然后进行解析
+"""
