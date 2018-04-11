@@ -10,7 +10,7 @@ from selenium.common.exceptions import TimeoutException
 
 """
     使用selenium 爬取携程航班信息
-    缺点：速度慢，解析需要等待js渲染，难分析
+    缺点：速度慢，解析需要等待js渲染，难分析提取想要的数据
     优点：不需要抓包信息，简单
 """
 driver = webdriver.Chrome()
@@ -63,6 +63,7 @@ div_list = driver.find_element_by_xpath("//*[@id='J_flightlist2']/div")
 # 进行解析，提取需要的信息
 div_parse_list = etree.HTML(div_list)
 
+# TODO 存在解析问题，待解决
 for div in div_parse_list:
     start_time = div.xpath("./div[2]/div[2]/div[1]/strong/text()").strip()
     arrivals_time = div.xpath("./div[2]/div[4]/div[1]/strong/text()").strip()
