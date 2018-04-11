@@ -1,34 +1,32 @@
+var url = "//flights.ctrip.com/domesticsearch/search/SearchRoundRecommend?DCity1=AAT&ACity1=AKU&SearchType=D&DDate1=2018-04-12&ACity2=AAT&DDate2=2018-05-11&IsNearAirportRecommond=0&LogToken=0a29af5f595740a99c86b34d377c8eeb&CK=5D875D554609FCD32B31FD819B955CFD";
+var _searchCount_c = 0;
+
 function ajaxRequest(n, t) {
     var i = null, e, f, l, o, s, r, c, u, h;
-    if (typeof XMLHttpRequest != "undefined")
-        i = new XMLHttpRequest;
-    else if (typeof ActiveXObject != "undefined") {
-        if (typeof arguments.callee.aciveXString != "string")
-            for (e = ["MSXML2.XMLHttp.6.0", "MSXML2.XMLHttp.3.0", "MSXML2.XMLHttp"], f = 0, l = e.length; f < l; f++)
-                try {
-                    i = new ActiveXObject(e[f]);
-                    arguments.callee.activeXString = e[f];
-                    break
-                } catch (a) {
-                }
+    if (typeof XMLHttpRequest != "undefined") i = new XMLHttpRequest; else if (typeof ActiveXObject != "undefined") {
+        if (typeof arguments.callee.aciveXString != "string") for (e = ["MSXML2.XMLHttp.6.0", "MSXML2.XMLHttp.3.0", "MSXML2.XMLHttp"], f = 0, l = e.length; f < l; f++) try {
+            i = new ActiveXObject(e[f]);
+            arguments.callee.activeXString = e[f];
+            break
+        } catch (a) {
+        }
         i == null && (i = new ActiveXObject(arguments.callee.activeXString))
     }
     i.onreadystatechange = function () {
         try {
-            if (i.readyState == 4)
-                if (i.status >= 200 && i.status < 300 || i.status == 304) {
-                    var r = eval("(" + i.responseText + ")");
-                    if (_searchCount_c == 0 && r && r.Error && (r.Error.Code == 104 || r.Error.Code == 1004) && (r.Error.Message == "" || !r.Error.Message)) {
-                        _searchCount_c++;
-                        setTimeout(function () {
-                            var i = n.split("&");
-                            i.pop();
-                            ajaxRequest(i.join("&") + "&rt=" + Math.random() * 1e3, t)
-                        }, 1e3);
-                        return
-                    }
-                    jsonCallback.done(r)
-                } else i.status != 0 && jsonCallback.onError()
+            if (i.readyState == 4) if (i.status >= 200 && i.status < 300 || i.status == 304) {
+                var r = eval("(" + i.responseText + ")");
+                if (_searchCount_c == 0 && r && r.Error && (r.Error.Code == 104 || r.Error.Code == 1004) && (r.Error.Message == "" || !r.Error.Message)) {
+                    _searchCount_c++;
+                    setTimeout(function () {
+                        var i = n.split("&");
+                        i.pop();
+                        ajaxRequest(i.join("&") + "&rt=" + Math.random() * 1e3, t)
+                    }, 1e3);
+                    return
+                }
+                jsonCallback.done(r)
+            } else i.status != 0 && jsonCallback.onError()
         } catch (u) {
             jsonCallback.onError()
         }
@@ -38,23 +36,18 @@ function ajaxRequest(n, t) {
     (r.indexOf("ClassType=CF") == -1 || r.indexOf("ClassType=&") != -1) && (r += getStorage("FD_SearchPage_onlyCf") == "CF" ? "&ClassType=CF" : "");
     _searchCount_c > 0 && (c = t.split(".")[1], t = "0." + c.substring(1, c.length - 1));
     u = r.split("&");
-    /*=====================rk值======================*/
     h = r.indexOf("rk=") >= 0 || r.indexOf("rt=") >= 0 ? u.splice(u.length - 2, 1)[0] : u.pop();
-    /* ==================CK值======================*/
     u.push("CK=");
     h = h.split("=")[1];
     var fn = (function (u, r, k, t) {
-        var p46 = 1, Z46p = 1;
-        p46 = p46 -= parseInt(Math.cos(4) * 0xa);
-        p46 = p46 *= parseInt(Math.cos(4) * 0xa);
-        p46 = p46 -= parseInt(Math.tan(4) * 0xa);
-        if (p46 < 0) p46 = -p46;
-        while (p46 > 30) p46 = p46 % 10;
-        Z46p = Z46p -= parseInt(Math.cos(4) * 0xa);
-        Z46p = Z46p *= parseInt(Math.sqrt(4) * 0xa);
-        Z46p = Z46p *= parseInt(Math.cos(4) * 0xa);
-        if (Z46p < 0) Z46p = -Z46p;
-        while (Z46p > 30) Z46p = Z46p % 10;
+        var r19 = 1, p19r = 1;
+        r19 = r19 *= parseInt(Math.sin(5) * 0xa);
+        r19 = r19 *= parseInt(Math.cos(5) * 0xa);
+        if (r19 < 0) r19 = -r19;
+        while (r19 > 30) r19 = r19 % 10;
+        p19r = p19r += parseInt(Math.cos(6) * 0xa);
+        if (p19r < 0) p19r = -p19r;
+        while (p19r > 30) p19r = p19r % 10;
         (function (r, u, x, y, t, k) {
             if (!window.location.href) {
                 return;
@@ -64,7 +57,7 @@ function ajaxRequest(n, t) {
             l.splice(x, 0, c);
             t.open('GET', u.join('&') + l.join('') + '&r=' + k, !0);
             t.send(null);
-        })(r, u, p46, Z46p, t, k)
+        })(r, u, r19, p19r, t, k)
     });
     fn(u, h, t, i)
 }
@@ -105,3 +98,10 @@ var jsonCallback = {
         return ""
     }
 }
+
+
+var searchRouteIndex = "0";
+var isCivil = false;
+var roundTripCombinationSwitch = true;
+(getStorage('RoundRecomandHistoryIsOpen') !== 1 || (!isCivil && roundTripCombinationSwitch)) && url.indexOf('SearchRoundRecommend') > -1 && (url = url.replace('SearchRoundRecommend', ['SearchFirstRouteFlights', 'SearchSecondRouteFlights'][searchRouteIndex]));
+ajaxRequest(url + '&rk=' + Math.random() * 10 + '162719', '0.2615385776611629926218');
