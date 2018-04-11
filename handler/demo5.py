@@ -16,7 +16,7 @@ from selenium import webdriver
 from selenium.common.exceptions import TimeoutException
 from bs4 import BeautifulSoup
 from selenium.webdriver import DesiredCapabilities
-from selenium.webdriver.common.proxy import ProxyType
+from selenium.webdriver.common.proxy import ProxyType, Proxy
 
 """
     利用PhantomJs 模拟搜索，得到响应的页面内容，
@@ -201,7 +201,7 @@ def get_proxy_ip(ip_pool):
         # 该ip不可用时，继续选取
         return get_proxy_ip(ip_pool)
     else:
-        return ip_port, (
+        return ip_port, Proxy(
             {
                 'proxyType': ProxyType.MANUAL,
                 'httpProxy': ip_port  # 代理ip和端口
@@ -312,12 +312,13 @@ if __name__ == '__main__':
     # 打开初始连接（以后的url在此基础上搜索）
     # 第一步，获取代理ip
     pool_file_path = r"../resource/available_ip.txt"
-    proxy_ip1, proxy_ip2 = get_ip_pool(pool_file_path)
+    proxy_pool = get_ip_pool(pool_file_path)
+    proxy_ip1, proxy_ip2 = get_proxy_ip(proxy_pool)
 
     # 第一步,打开初始连接
     driver = create_browser(start_url, proxy_ip2)
 
-    # 第二步，进行搜索，返回响应内容
+    # 第二步，进行搜索（新页面），返回响应内容
     page_content = filling_input_click(driver, cities_name_list[0], cities_name_list[1], start_date[0], return_date)
 
     # 第三步，分析响应内容，获取url参数
