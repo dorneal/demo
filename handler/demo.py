@@ -3,7 +3,7 @@
 # Filename:demo.py
 # Author:黄鹏
 # Time:2018.04.12 10:15
-
+import json
 import random
 import urllib
 from urllib import parse
@@ -28,9 +28,11 @@ from lxml import etree
 def get_flight_msg(dict_content):
     """
     根据构造出的url获取到航班数据
-    :param dict_content: 响应的json内容
+    :param dict_content: 响应的内容
     :return:  list
     """
+    # 转换为json
+    dict_content = json.loads(dict_content)
     # 如果出现错误
     if dict_content['Error']:
         if dict_content['Error']['Code'] == 103:
@@ -175,8 +177,8 @@ def get_parameter(this_city, other_city, proxy_addr, date1, date2):
             # TODO 待解决
             print("-_-||，失去响应!!!，url地址为 {0} ".format(url))
             return 2
-        # 返会响应的json内容
-        return session_res.json(),
+        # 返会响应的内容
+        return session_res.text,
     else:
         print("响应失败！响应码{0}".format(response.status_code))
         return 3
@@ -254,7 +256,8 @@ if __name__ == '__main__':
                 # 获取加密url参数
                 res = get_parameter(city_num_list[i], city_num_list[j], ip_and_port, date, return_date)
 
-                # 如果url参数解析不为空，进行航班信息查询
+                # 如果出现响应超时等错误，就切换ip
+                print("现在所使用的的代理ip：{0}".format(ip_and_port))
                 if res == 0:
                     # 随机从代理池中选取一个代理ip，并测试是否可用
                     ip_and_port = test_proxy_ip(proxy_ip_pool)
