@@ -1,25 +1,22 @@
 #!/usr/bin/python3
 # coding:utf-8
-# Filename:demo4.py
+# Filename:demo.py
 # Author:黄鹏
-# Time:2018.04.10 11:59
+# Time:2018.04.12 10:15
 
-import json
 import random
 import urllib
 from urllib import parse
-from urllib.request import Request
-
 import time
-
 import requests
 from lxml import etree
 
 """
+    使用第三方爬虫库requests
     爬取携程指定起始位置、日期的机票信息
     缺点：抓包分析难，js脚本太多，加密的参数（携程自称OceanBall）
     优点：快速，准确，易分析，灵活性强
-    
+
     携程反爬机制：url前端加密参数（需要具体分析demo.js），短时间大访问量封ip（半个小时）。
     目前存在问题：
         速度太快，容易封ip
@@ -46,13 +43,7 @@ def filling_headers(url, this_city, other_city, start_date, arrivals_date, proxy
                       "65.0.3325.181 Safari/537.36",
         'Referer': "http://flights.ctrip.com/booking/%s-%s---D-adu-1/?dayoffset=0&ddate1=%s&ddate2=%s" % (
             this_city, other_city, start_date, arrivals_date)}
-
-    # 是否使用ip代理
-    proxy = urllib.request.ProxyHandler({'http': proxy_addr})
-    opener1 = urllib.request.build_opener(proxy)
-    urllib.request.install_opener(opener1)
-
-    req = urllib.request.Request(url=url, headers=headers, method='GET')
+    req = requests.get(url=url, headers=headers, proxies={'http': proxy_addr})
 
     # 返回响应
     return req
@@ -94,12 +85,8 @@ def get_flight_msg(this_city, other_city, start_date, arrivals_date, proxy_addr,
     # 填充信息
     req = filling_headers(url, this_city, other_city, start_date, arrivals_date, proxy_addr)
 
-    # 请求，响应结果
-    res = urllib.request.urlopen(req)
-    # 读取解码
-    content = res.read().decode("gbk")
     # 将结果转为json格式
-    dict_content = json.loads(content)
+    dict_content = req.json()
 
     # 如果出现错误
     if dict_content['Error']:
@@ -164,13 +151,12 @@ def get_parameter(this_city, other_city, proxy_addr, date1, date2):
         this_city, other_city, date1, date2)
 
     # 填充信息
-    req = filling_headers(url, this_city, other_city, date1, date2, proxy_addr)
+    response = filling_headers(url, this_city, other_city, date1, date2, proxy_addr)
 
     # 请求
-    response = urllib.request.urlopen(req)
-    if response.status == 200:
+    if response.status_code == 200:
         # 解析html
-        res = response.read()
+        res = response.text
         tree = etree.HTML(res)
 
         # 解析响应的脚本，获取url，破解出重要url参数
@@ -190,7 +176,7 @@ def get_parameter(this_city, other_city, proxy_addr, date1, date2):
         # 返回重要url参数
         return rk, CK, r
     else:
-        print("响应失败！响应码{0}".format(response.status))
+        print("响应失败！响应码{0}".format(response.status_code))
         return '', '', ''
 
 
@@ -241,7 +227,7 @@ if __name__ == '__main__':
 
     # ip代理池
     proxy_ip_pool = []
-    ip_msg = open(r"../resource/available_ip.txt", encoding="utf-8")
+    ip_msg = open(r"../resource/proxy_ip2.txt", encoding="utf-8")
     for line in ip_msg:
         address = line.strip()
         proxy_ip_pool.append(address)
@@ -251,14 +237,13 @@ if __name__ == '__main__':
     在指定出发日期内访问，遍历所有城市，两两之间的航班信息
     """
 
-    # 随机从代理池中选取一个代理ip，并测试是否可用
-    ip_and_port = test_proxy_ip(proxy_ip_pool)
-
     for date in dates:
         # 在该日期下，双遍历（两城市之间的航班信息）
         for i in range(city_count):
             # 下标，从i+1开始
             for j in range(i + 1, city_count):
+                # 随机从代理池中选取一个代理ip，并测试是否可用
+                ip_and_port = test_proxy_ip(proxy_ip_pool)
                 # 限制爬取速度，速度太快容易被封ip
                 time.sleep(5)
 
@@ -271,12 +256,11 @@ if __name__ == '__main__':
                     # 进行航班信息加载及解析
                     results = get_flight_msg(city_num_list[i], city_num_list[j], date, return_date, ip_and_port, rk, CK,
                                              r)
-
-                    # 写入两城市间名字
-                    save_msg.write("{0} 到 {1}\n".format(city_name_list[i], city_name_list[j]))
-
                     # 如果有航班信息
                     if results:
+                        # 写入两城市间名字
+                        save_msg.write("{0} 到 {1}\n".format(city_name_list[i], city_name_list[j]))
+
                         print(date + "时:")
                         print("====================================")
                         print(results)
@@ -286,12 +270,9 @@ if __name__ == '__main__':
                             save_msg.write("出发时间 {0} --> 到达时间 {1} ，票价：{2}\n".format(result['start_time'],
                                                                                     result['arrivals_time'],
                                                                                     result['price']))
-                    elif not results:
-                        # 如果返回为空，则说明ip被封，则重新挑选ip代理
-                        print("{0} 代理ip被封，切换ip".format(ip_and_port))
-                        ip_and_port = test_proxy_ip(proxy_ip_pool)
-                    elif len(results) == 0:
+                    else:
                         save_msg.write("暂无航班信息\n")
+
                     # 换行
                     save_msg.write("\n")
                     save_msg.flush()

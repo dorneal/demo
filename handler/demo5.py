@@ -34,10 +34,12 @@ def get_parameter(content):
     # bs4解析dom
     bsObj = BeautifulSoup(content, 'html.parser')
     # 进行查找该脚本段
-    script = bsObj.find_all('script', string=re.compile('var url'), type='text/javascript')[0]
-
+    scripts = bsObj.find_all('script', string=re.compile('var url'), type='text/javascript')
+    # 国际航班没有该脚本段，暂未分析
+    if not scripts:
+        return "", "", ""
     # 解析脚本段，获取url，破解出重要url参数
-    pp = str(script.get_text()).split()
+    pp = str(scripts[0].get_text()).split()
 
     CK_original = pp[3][-34:-2]
     CK = CK_original[0:5] + CK_original[13] + CK_original[5:13] + CK_original[14:]
@@ -51,31 +53,38 @@ def get_parameter(content):
     return r, rk, CK
 
 
-def create_browser(url, proxy):
+def create_browser(url, ip_port):
     """
     打开一个连接
     :param url: 连接地址
-    :param proxy: 代理池
+    :param ip_port: 代理地址
     :return: 返回一个打开连接的driver
     """
+    proxy = Proxy(
+        {
+            'proxyType': ProxyType.MANUAL,
+            'httpProxy': "107.172.10.24:1080"  # 代理ip和端口
+        }
+    )
+    # 新建一个“期望的技能”
     desired_capabilities = DesiredCapabilities.PHANTOMJS.copy()
     # 把代理ip加入到技能中
     proxy.add_to_capabilities(desired_capabilities)
-    driver = webdriver.PhantomJS(
+    browser = webdriver.PhantomJS(
         desired_capabilities=desired_capabilities
     )
     # 设置超时时间
-    driver.set_page_load_timeout(30)
+    browser.set_page_load_timeout(30)
     try:
-        driver.get(url)
+        browser.get(url)
     except TimeoutException:
         # 超过设定时间，停止加载
-        driver.execute_script('window.stop()')
+        browser.execute_script('window.stop()')
     # 返回打开连接的driver
-    return driver
+    return browser
 
 
-def filling_input_click(driver, start_city, arrivals_city, start_date, return_date):
+def filling_search(driver, start_city, arrivals_city, start_date, return_date):
     """
     模拟输入城市，日期信息，点击搜索按钮
     :param driver:  driver对象
@@ -86,6 +95,7 @@ def filling_input_click(driver, start_city, arrivals_city, start_date, return_da
     :return: 页面响应内容
     """
     # 获取城市输入，日期输入框
+    print(driver.page_source)
     start_city_input = driver.find_element_by_xpath("//*[@id='DCityName1']")
     arrivals_city_input = driver.find_element_by_xpath("//*[@id='ACityName1']")
     start_date_input = driver.find_element_by_xpath("//*[@id='DDate1']")
@@ -201,12 +211,7 @@ def get_proxy_ip(ip_pool):
         # 该ip不可用时，继续选取
         return get_proxy_ip(ip_pool)
     else:
-        return ip_port, Proxy(
-            {
-                'proxyType': ProxyType.MANUAL,
-                'httpProxy': ip_port  # 代理ip和端口
-            }
-        )
+        return ip_port
 
 
 def get_flight_msg(this_city, other_city, start_date, arrivals_date, rk, CK, r, proxy_addr):
@@ -306,6 +311,7 @@ if __name__ == '__main__':
     cities = r"C:\Users\Administrator\Desktop\workspace\day0410\cities.txt"
     # 城市信息
     cities_num_list, cities_name_list = get_city(cities)
+    length = len(cities_num_list)
     # 出发往返日期
     start_date = ['2018-04-16']
     return_date = '2018-05-03'
@@ -313,19 +319,53 @@ if __name__ == '__main__':
     # 第一步，获取代理ip
     pool_file_path = r"../resource/available_ip.txt"
     proxy_pool = get_ip_pool(pool_file_path)
-    proxy_ip1, proxy_ip2 = get_proxy_ip(proxy_pool)
+    proxy_ip = get_proxy_ip(proxy_pool)
 
+    # 保存位置
+    # 将航班信息保存到文本
+    filename = r"C:\Users\Administrator\Desktop\workspace\day0410\test8.txt"
+    save_msg = open(filename, "a+", encoding="utf-8")
     # 第一步,打开初始连接
-    driver = create_browser(start_url, proxy_ip2)
+    driver = create_browser(start_url, proxy_ip)
+    for date in start_date:
+        for i in range(length):
+            for j in range(i + 1, length):
 
-    # 第二步，进行搜索（新页面），返回响应内容
-    page_content = filling_input_click(driver, cities_name_list[0], cities_name_list[1], start_date[0], return_date)
+                # 第二步，进行搜索（新页面），返回响应内容
+                page_content = filling_search(driver, cities_name_list[i], cities_name_list[j], date,
+                                              return_date)
 
-    # 第三步，分析响应内容，获取url参数
-    r, rk, CK = get_parameter(page_content)
-    print(r, rk, CK)
+                time.sleep(3)
 
-    # 第四步，根据url参数构造新url,填充数据，进行连接
-    results = get_flight_msg(cities_num_list[0], cities_num_list[1], start_date[0], return_date, r, rk, CK, proxy_ip1)
+                # 第三步，分析响应内容，获取url参数
+                r, rk, CK = get_parameter(page_content)
+                # print(r, rk, CK)
 
-    print(results)
+                # 如果url参数解析不为空，进行航班信息查询
+                if rk and CK and r:
+                    time.sleep(2)
+                    # 第四步，根据url参数构造新url,填充数据，进行连接
+                    results = get_flight_msg(cities_num_list[i], cities_num_list[j], date, return_date, r, rk,
+                                             CK, proxy_ip)
+
+                    # 写入两城市间名字
+                    save_msg.write("{0} 到 {1}\n".format(cities_name_list[i], cities_name_list[j]))
+
+                    # 如果有航班信息
+                    if results:
+                        print(date + "时:")
+                        print("====================================")
+                        print(results)
+
+                        # 将所有航班信息写入文本
+                        for result in results:
+                            save_msg.write("出发时间 {0} --> 到达时间 {1} ，票价：{2}\n".format(result['start_time'],
+                                                                                    result['arrivals_time'],
+                                                                                    result['price']))
+                    else:
+                        save_msg.write("暂无航班信息\n")
+
+                    # 换行
+                    save_msg.write("\n")
+                    save_msg.flush()
+    save_msg.close()
