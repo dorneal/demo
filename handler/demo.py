@@ -7,7 +7,6 @@
 import random
 import urllib
 from urllib import parse
-import time
 import requests
 from lxml import etree
 
@@ -26,68 +25,12 @@ from lxml import etree
 """
 
 
-def filling_headers(url, this_city, other_city, start_date, arrivals_date, proxy_addr):
-    """
-    请求头的填充
-    :param url: Url地址
-    :param this_city:  出发地址
-    :param other_city: 目的地
-    :param start_date: 出发日期
-    :param arrivals_date: 返回日期
-    :param proxy_addr: 代理ip
-    :return: 响应对象
-    """
-    headers = {
-        'Host': "flights.ctrip.com",
-        'User-Agent': "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/"
-                      "65.0.3325.181 Safari/537.36",
-        'Referer': "http://flights.ctrip.com/booking/%s-%s---D-adu-1/?dayoffset=0&ddate1=%s&ddate2=%s" % (
-            this_city, other_city, start_date, arrivals_date)}
-    req = requests.get(url=url, headers=headers, proxies={'http': proxy_addr})
-
-    # 返回响应
-    return req
-
-
-def get_flight_msg(this_city, other_city, start_date, arrivals_date, proxy_addr, rk, CK, r):
+def get_flight_msg(dict_content):
     """
     根据构造出的url获取到航班数据
-    :param this_city: 出发城市
-    :param other_city: 目的城市
-    :param start_date:  出发时间
-    :param arrivals_date:  到达时间
-    :param proxy_addr: 代理IP
-    :param rk:  url参数
-    :param CK:  url参数
-    :param r:   url参数
+    :param dict_content: 响应的json内容
     :return:  list
     """
-    # 构造url参数
-    url_dict = {
-        'DCity1': this_city,
-        'ACity1': other_city,
-        'SearchType': 'D',  # 搜索类型D为往返，S为单程
-        'DDate1': start_date,
-        'ACity2': this_city,
-        'DDate2': arrivals_date,
-        'IsNearAirportRecommond': 0,
-        'rk': rk,
-        'CK': CK,
-        'r': r
-    }
-
-    # 加工构造出的url参数
-    url_data = urllib.parse.urlencode(url_dict)
-
-    # url添加参数
-    url = "http://flights.ctrip.com/domesticsearch/search/SearchFirstRouteFlights?" + url_data
-
-    # 填充信息
-    req = filling_headers(url, this_city, other_city, start_date, arrivals_date, proxy_addr)
-
-    # 将结果转为json格式
-    dict_content = req.json()
-
     # 如果出现错误
     if dict_content['Error']:
         if dict_content['Error']['Code'] == 103:
@@ -150,21 +93,34 @@ def get_parameter(this_city, other_city, proxy_addr, date1, date2):
     url = "http://flights.ctrip.com/booking/%s-%s---D-adu-1/?dayoffset=0&ddate1=%s&ddate2=%s&searchtype=D" % (
         this_city, other_city, date1, date2)
 
+    headers = {
+        'Host': "flights.ctrip.com",
+        'User-Agent': "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/"
+                      "65.0.3325.181 Safari/537.36",
+        'Referer': "http://flights.ctrip.com/"}
+
     # 填充信息
-    response = filling_headers(url, this_city, other_city, date1, date2, proxy_addr)
+    try:
+        response = requests.get(url=url, headers=headers, proxies={'http': proxy_addr}, timeout=30)
+    except:
+        # TODO 待解决
+        print("在求参的时候是去响应！！！请求地址为 {0} ".format(url))
+        return 0
 
     # 请求
     if response.status_code == 200:
         # 解析html
-        res = response.text
-        tree = etree.HTML(res)
+        response_dom = response.text
+        tree = etree.HTML(response_dom)
 
         # 解析响应的脚本，获取url，破解出重要url参数
         try:
             pp = tree.xpath("//body/script[1]/text()")[0].split()
         except IndexError:
+            # TODO 需要分析国际航班
             print("国际航班暂未分析Js脚本如何是如何加密参数！")
-            return '', '', ''
+            return 1
+        # 获取到参数
         CK_original = pp[3][-34:-2]
         CK = CK_original[0:5] + CK_original[13] + CK_original[5:13] + CK_original[14:]
         rk = pp[-1][18:24]
@@ -173,11 +129,57 @@ def get_parameter(this_city, other_city, proxy_addr, date1, date2):
         rk = num_str + rk
         r = pp[-1][27:len(pp[-1]) - 3]
 
-        # 返回重要url参数
-        return rk, CK, r
+        # 将CookieJar转为字典：
+        cookies = requests.utils.dict_from_cookiejar(response.cookies)
+        # 将字典转为CookieJar：
+        cookies = requests.utils.cookiejar_from_dict(cookies, cookiejar=None, overwrite=True)
+        # 其中cookie_dict是要转换字典
+
+        # 转换完之后就可以把它赋给cookies
+        # 并传入到session中
+        session = requests.Session()
+        # 使用会话
+        # 填充信息
+        session.cookies = cookies
+        session.proxies = {"http": proxy_addr}
+        headers = {
+            'Host': "flights.ctrip.com",
+            'User-Agent': "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/"
+                          "65.0.3325.181 Safari/537.36",
+            'Referer': "http://flights.ctrip.com/booking/%s-%s---D-adu-1/?dayoffset=0&ddate1=%s&ddate2=%s" % (
+                this_city, other_city, date1, date2)}
+        session.headers = headers
+
+        # 构造url参数
+        url_dict = {
+            'DCity1': this_city,
+            'ACity1': other_city,
+            'SearchType': 'D',  # 搜索类型D为往返，S为单程
+            'DDate1': date1,
+            'ACity2': this_city,
+            'DDate2': date2,
+            'IsNearAirportRecommond': 0,
+            'rk': rk,
+            'CK': CK,
+            'r': r
+        }
+
+        # 加工构造出的url参数
+        url_data = urllib.parse.urlencode(url_dict)
+        url = "http://flights.ctrip.com/domesticsearch/search/SearchFirstRouteFlights?" + url_data
+
+        try:
+            # 使用会话打开连接，可保持cookie
+            session_res = session.get(url=url, timeout=30)
+        except:
+            # TODO 待解决
+            print("-_-||，失去响应!!!，url地址为 {0} ".format(url))
+            return 2
+        # 返会响应的json内容
+        return session_res.json(),
     else:
         print("响应失败！响应码{0}".format(response.status_code))
-        return '', '', ''
+        return 3
 
 
 def test_proxy_ip(ip_pool):
@@ -189,13 +191,14 @@ def test_proxy_ip(ip_pool):
     # 随机从代理池中选出一个IP、Port
     ip_port = random.choice(ip_pool)
     try:
-        print(requests.get("http://httpbin.org/ip", proxies={"http": ip_port}).json())
+        requests.get("http://flights.ctrip.com", proxies={"http": ip_port}, timeout=30)
     except:
         print('代理ip：{0} 不可用！'.format(ip_port))
         # 该ip不可用时，继续选取
         ip_pool.remove(ip_port)
         return test_proxy_ip(ip_pool)
     else:
+        print('可用代理：{0}'.format(ip_port))
         return ip_port
 
 
@@ -237,34 +240,39 @@ if __name__ == '__main__':
     在指定出发日期内访问，遍历所有城市，两两之间的航班信息
     """
 
+    # 随机从代理池中选取一个代理ip，并测试是否可用
+    ip_and_port = test_proxy_ip(proxy_ip_pool)
+
     for date in dates:
         # 在该日期下，双遍历（两城市之间的航班信息）
         for i in range(city_count):
             # 下标，从i+1开始
             for j in range(i + 1, city_count):
-                # 随机从代理池中选取一个代理ip，并测试是否可用
-                ip_and_port = test_proxy_ip(proxy_ip_pool)
-                # 限制爬取速度，速度太快容易被封ip
-                time.sleep(5)
+                # 写入两城市间名字
+                save_msg.write("{0} 到 {1}\n".format(city_name_list[i], city_name_list[j]))
 
                 # 获取加密url参数
-                rk, CK, r = get_parameter(city_num_list[i], city_num_list[j], ip_and_port, date, return_date)
+                res = get_parameter(city_num_list[i], city_num_list[j], ip_and_port, date, return_date)
 
                 # 如果url参数解析不为空，进行航班信息查询
-                if rk and CK and r:
-                    time.sleep(2)
+                if res == 0:
+                    # 随机从代理池中选取一个代理ip，并测试是否可用
+                    ip_and_port = test_proxy_ip(proxy_ip_pool)
+                elif res == 1:
+                    save_msg.write("国际航班\n")
+                elif res == 2:
+                    # 随机从代理池中选取一个代理ip，并测试是否可用
+                    ip_and_port = test_proxy_ip(proxy_ip_pool)
+                elif res == 3:
+                    # 随机从代理池中选取一个代理ip，并测试是否可用
+                    ip_and_port = test_proxy_ip(proxy_ip_pool)
+                else:
                     # 进行航班信息加载及解析
-                    results = get_flight_msg(city_num_list[i], city_num_list[j], date, return_date, ip_and_port, rk, CK,
-                                             r)
+                    results = get_flight_msg(res)
                     # 如果有航班信息
                     if results:
-                        # 写入两城市间名字
-                        save_msg.write("{0} 到 {1}\n".format(city_name_list[i], city_name_list[j]))
-
-                        print(date + "时:")
-                        print("====================================")
+                        print("============={0}================".format(date))
                         print(results)
-
                         # 将所有航班信息写入文本
                         for result in results:
                             save_msg.write("出发时间 {0} --> 到达时间 {1} ，票价：{2}\n".format(result['start_time'],
@@ -272,8 +280,6 @@ if __name__ == '__main__':
                                                                                     result['price']))
                     else:
                         save_msg.write("暂无航班信息\n")
-
-                    # 换行
                     save_msg.write("\n")
-                    save_msg.flush()
+                save_msg.flush()
     save_msg.close()

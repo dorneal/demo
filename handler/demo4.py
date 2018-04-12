@@ -3,15 +3,12 @@
 # Filename:demo4.py
 # Author:黄鹏
 # Time:2018.04.10 11:59
-
+import http
 import json
 import random
 import urllib
 from urllib import parse
 from urllib.request import Request
-
-import time
-
 import requests
 from lxml import etree
 
@@ -29,25 +26,16 @@ from lxml import etree
 """
 
 
-def filling_headers(url, this_city, other_city, start_date, arrivals_date, proxy_addr):
+def filling_headers(url, headers, proxy_addr):
     """
     请求头的填充
     :param url: Url地址
-    :param this_city:  出发地址
-    :param other_city: 目的地
-    :param start_date: 出发日期
-    :param arrivals_date: 返回日期
+    :param headers: 头部信息
     :param proxy_addr: 代理ip
     :return: 响应对象
     """
-    headers = {
-        'Host': "flights.ctrip.com",
-        'User-Agent': "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/"
-                      "65.0.3325.181 Safari/537.36",
-        'Referer': "http://flights.ctrip.com/booking/%s-%s---D-adu-1/?dayoffset=0&ddate1=%s&ddate2=%s" % (
-            this_city, other_city, start_date, arrivals_date)}
 
-    # 是否使用ip代理
+    # 使用ip代理
     proxy = urllib.request.ProxyHandler({'http': proxy_addr})
     opener1 = urllib.request.build_opener(proxy)
     urllib.request.install_opener(opener1)
@@ -91,11 +79,24 @@ def get_flight_msg(this_city, other_city, start_date, arrivals_date, proxy_addr,
     # url添加参数
     url = "http://flights.ctrip.com/domesticsearch/search/SearchFirstRouteFlights?" + url_data
 
+    headers = {
+        'Host': "flights.ctrip.com",
+        'User-Agent': "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) "
+                      "Chrome/65.0.3325.181 Safari/537.36",
+        'Referer': "http://flights.ctrip.com/booking/%s-%s---D-adu-1/?dayoffset=0&ddate1=%s&ddate2=%s" % (
+            this_city, other_city, start_date, arrivals_date)}
+
     # 填充信息
-    req = filling_headers(url, this_city, other_city, start_date, arrivals_date, proxy_addr)
+    req = filling_headers(url, headers, proxy_addr)
 
     # 请求，响应结果
-    res = urllib.request.urlopen(req)
+    try:
+        res = urllib.request.urlopen(req, timeout=30)
+    except:
+        # TODO 待解决
+        print("-_-||，失去响应!!!，url地址为 {0} ".format(url))
+        return None
+
     # 读取解码
     content = res.read().decode("gbk")
     # 将结果转为json格式
@@ -163,11 +164,28 @@ def get_parameter(this_city, other_city, proxy_addr, date1, date2):
     url = "http://flights.ctrip.com/booking/%s-%s---D-adu-1/?dayoffset=0&ddate1=%s&ddate2=%s&searchtype=D" % (
         this_city, other_city, date1, date2)
 
+    headers = {
+        'Host': "flights.ctrip.com",
+        'User-Agent': "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/"
+                      "65.0.3325.181 Safari/537.36",
+        'Referer': "http://flights.ctrip.com/"}
+
     # 填充信息
-    req = filling_headers(url, this_city, other_city, date1, date2, proxy_addr)
+    req = filling_headers(url, headers, proxy_addr)
 
     # 请求
-    response = urllib.request.urlopen(req)
+    try:
+        response = urllib.request.urlopen(req, timeout=30)
+    except:
+        # TODO 待解决
+        print("在求参的时候超时！！！请求地址为 {0} ".format(url))
+        return "", "", ""
+
+    cookie = http.cookiejar.CookieJar()
+    cookieProc = urllib.request.HTTPCookieProcessor(cookie)
+    opener = urllib.request.build_opener(cookieProc)
+    urllib.request.install_opener(opener)
+
     if response.status == 200:
         # 解析html
         res = response.read()
@@ -178,7 +196,7 @@ def get_parameter(this_city, other_city, proxy_addr, date1, date2):
             pp = tree.xpath("//body/script[1]/text()")[0].split()
         except IndexError:
             print("国际航班暂未分析Js脚本如何是如何加密参数！")
-            return '', '', ''
+            return None, None, None
         CK_original = pp[3][-34:-2]
         CK = CK_original[0:5] + CK_original[13] + CK_original[5:13] + CK_original[14:]
         rk = pp[-1][18:24]
@@ -203,13 +221,14 @@ def test_proxy_ip(ip_pool):
     # 随机从代理池中选出一个IP、Port
     ip_port = random.choice(ip_pool)
     try:
-        print(requests.get("http://httpbin.org/ip", proxies={"http": ip_port}).json())
+        requests.get("http://flights.ctrip.com", proxies={"http": ip_port}, timeout=30)
     except:
         print('代理ip：{0} 不可用！'.format(ip_port))
         # 该ip不可用时，继续选取
         ip_pool.remove(ip_port)
         return test_proxy_ip(ip_pool)
     else:
+        print('可用代理：{0}'.format(ip_port))
         return ip_port
 
 
@@ -259,26 +278,21 @@ if __name__ == '__main__':
         for i in range(city_count):
             # 下标，从i+1开始
             for j in range(i + 1, city_count):
-                # 限制爬取速度，速度太快容易被封ip
-                time.sleep(5)
+                # 写入两城市间名字
+                save_msg.write("{0} 到 {1}\n".format(city_name_list[i], city_name_list[j]))
 
                 # 获取加密url参数
                 rk, CK, r = get_parameter(city_num_list[i], city_num_list[j], ip_and_port, date, return_date)
 
                 # 如果url参数解析不为空，进行航班信息查询
                 if rk and CK and r:
-                    time.sleep(2)
                     # 进行航班信息加载及解析
                     results = get_flight_msg(city_num_list[i], city_num_list[j], date, return_date, ip_and_port, rk, CK,
                                              r)
 
-                    # 写入两城市间名字
-                    save_msg.write("{0} 到 {1}\n".format(city_name_list[i], city_name_list[j]))
-
                     # 如果有航班信息
                     if results:
-                        print(date + "时:")
-                        print("====================================")
+                        print("============={0}================".format(date))
                         print(results)
 
                         # 将所有航班信息写入文本
@@ -286,7 +300,7 @@ if __name__ == '__main__':
                             save_msg.write("出发时间 {0} --> 到达时间 {1} ，票价：{2}\n".format(result['start_time'],
                                                                                     result['arrivals_time'],
                                                                                     result['price']))
-                    elif not results:
+                    elif results is None:
                         # 如果返回为空，则说明ip被封，则重新挑选ip代理
                         print("{0} 代理ip被封，切换ip".format(ip_and_port))
                         ip_and_port = test_proxy_ip(proxy_ip_pool)
@@ -294,5 +308,11 @@ if __name__ == '__main__':
                         save_msg.write("暂无航班信息\n")
                     # 换行
                     save_msg.write("\n")
-                    save_msg.flush()
+                elif rk is None and CK is None and r is None:
+                    save_msg.write("国际航班\n")
+                else:
+                    # 如果返回为空，则说明ip被封，则重新挑选ip代理
+                    print("{0} 代理ip被封，切换ip".format(ip_and_port))
+                    ip_and_port = test_proxy_ip(proxy_ip_pool)
+                save_msg.flush()
     save_msg.close()

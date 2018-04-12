@@ -343,6 +343,7 @@ if __name__ == '__main__':
 
                 # 如果url参数解析不为空，进行航班信息查询
                 if rk and CK and r:
+
                     time.sleep(2)
                     # 第四步，根据url参数构造新url,填充数据，进行连接
                     results = get_flight_msg(cities_num_list[i], cities_num_list[j], date, return_date, r, rk,
@@ -353,8 +354,7 @@ if __name__ == '__main__':
 
                     # 如果有航班信息
                     if results:
-                        print(date + "时:")
-                        print("====================================")
+                        print("================{0}====================".format(date))
                         print(results)
 
                         # 将所有航班信息写入文本
