@@ -11,3 +11,10 @@
 <li>resource(源文件)
 <li>test(测试块)
 <li>util(工具包)
+
+<strong>注意：本程序调用了以下第三方库
+<ul>
+<li>requests
+<li>beautifulsoup4
+<li>selenium
+<li>lxml
