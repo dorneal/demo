@@ -9,6 +9,10 @@ from selenium.webdriver.common.proxy import Proxy
 from selenium.webdriver.common.proxy import ProxyType
 from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
 
+"""
+selenium 使用代理，测试
+"""
+
 proxy = Proxy(
     {
         'proxyType': ProxyType.MANUAL,
