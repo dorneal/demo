@@ -198,7 +198,11 @@ def get_parameter(this_city, other_city, proxy_address, date1, date2):
             print("-_-||，失去响应!!!，url地址为 {0} ".format(url))
             return 2
         # 返会响应的内容
-        return session_res.text
+        if session_res.status_code == 200:
+            return session_res.text
+        else:
+            print("响应错误，响应码{0}".format(session_res.status_code))
+            return 5
     else:
         print("响应失败！响应码{0}".format(response.status_code))
         return 3
@@ -217,12 +221,12 @@ def test_proxy_ip(ip_pool):
     try:
         telnetlib.Telnet(ip, port=port, timeout=20)
     except:
-        print('代理ip：{0} 不可用！'.format(ip_port))
+        print("代理 {0} 不可用,IP代理池深度为：{1}".format(ip_port, len(ip_pool)))
         # 该ip不可用时，删除当前这个，继续选取
         ip_pool.remove(ip_port)
         return test_proxy_ip(ip_pool)
     else:
-        print("当前使用代理:" + ip_port)
+        print("当前使用代理:{0} ,IP代理池深度为：{1}".format(ip_port, len(ip_pool)))
         return ip_port
 
 
@@ -260,6 +264,8 @@ if __name__ == '__main__':
         proxy_ip_pool.append(address)
     ip_msg.close()
 
+    # 被封ip集
+    ban_ip = open("../resource/ban_ip.txt", "a+", encoding="utf-8")
     """
     在指定出发日期内访问，遍历所有城市，两两之间的航班信息
     """
@@ -269,44 +275,32 @@ if __name__ == '__main__':
 
     # 在该日期下，双遍历（两城市之间的航班信息）
     for date in dates:
+        tag = 0
         for i in range(city_count):
-            for j in range(city_count):
+            while True:
+                tag += 1
+                if tag > city_count:
+                    break
                 # 避免城市相同
-                if i != j:
-                    # 写入两城市间名字
-                    save_msg.write("{0} 到 {1}\n".format(city_name_list[i], city_name_list[j]))
-
+                if i != tag:
                     # 获取加密url参数
-                    res = get_parameter(city_num_list[i], city_num_list[j], ip_and_port, date, return_date)
+                    res = get_parameter(city_num_list[i], city_num_list[tag], ip_and_port, date, return_date)
 
-                    if res == 0:
+                    if res == 0 or res == 1 or res == 2 or res == 3 or res == 4 or res == 5:
                         # 随机从代理池中选取一个代理ip，并测试是否可用
                         ip_and_port = test_proxy_ip(proxy_ip_pool)
                         # 重新从这个城市开始
-                        j -= 1
-                        continue
-                    elif res == 1:
-                        save_msg.write("国际航班\n")
-                        ip_and_port = test_proxy_ip(proxy_ip_pool)
-                        continue
-                    elif res == 2:
-                        ip_and_port = test_proxy_ip(proxy_ip_pool)
-                        j -= 1
-                        continue
-                    elif res == 3:
-                        ip_and_port = test_proxy_ip(proxy_ip_pool)
-                        j -= 1
-                        continue
-                    elif res == 4:
-                        ip_and_port = test_proxy_ip(proxy_ip_pool)
-                        j -= 1
+                        tag -= 1
                         continue
                     else:
+                        # 写入两城市间名字
+                        save_msg.write("{0} 到 {1}\n".format(city_name_list[i], city_name_list[tag]))
+
                         # 进行航班信息加载及解析
                         results = get_flight_msg(res)
                         # 如果有航班信息
                         if isinstance(results, list):
-                            print("====={1}======{0}====={2}=======".format(date, city_name_list[i], city_name_list[j]))
+                            print("====={1}======{0}====={2}=====".format(date, city_name_list[i], city_name_list[tag]))
                             print(results)
                             # 将所有航班信息写入文本
                             for result in results:
@@ -321,13 +315,15 @@ if __name__ == '__main__':
                                         result['start_time'], result['arrivals_time'], result['price']))
                         elif results == 1:
                             # 随机从代理池中选取一个代理ip，并测试是否可用
-                            save_msg.write("{0} IP被封！\n".format(ip_and_port))
+                            ban_ip.write("{0} IP被封！\n".format(ip_and_port))
+                            ban_ip.flush()
                             ip_and_port = test_proxy_ip(proxy_ip_pool)
                         elif results == 0:
                             save_msg.write("暂无航班信息\n")
                         else:
                             print("出现未知错误！{0}".format(results))
-                            j -= 1
+                            tag -= 1
                         save_msg.write("\n")
                     save_msg.flush()
     save_msg.close()
+    ban_ip.close()
