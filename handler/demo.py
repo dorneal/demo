@@ -123,7 +123,7 @@ def get_parameter(this_city, other_city, proxy_address, date1, date2):
         response = requests.get(url=url, data=url_data, headers=headers, proxies=proxies, timeout=30)
     except:
         # TODO 待解决
-        print("在求参的时候是去响应！！！请求地址为 {0} ".format(url))
+        print("在求参的时候失去响应！！！请求地址为 {0} ".format(url))
         return 0
 
     # 请求
