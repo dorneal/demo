@@ -1,20 +1,21 @@
 #!/usr/bin/python3
 # coding:utf-8
-# Filename:demo.py
+# Filename:urllib_spider.py
 # Author:黄鹏
 # Time:2018.04.12 10:15
+import http.cookiejar
 import json
 import random
 import telnetlib
 import urllib
 from urllib import parse
 import re
-import requests
 from bs4 import BeautifulSoup
-from requests import HTTPError, Timeout, ConnectTimeout
+import urllib.error
+import urllib.request
 
 """
-    使用第三方爬虫库requests
+    使用自带的爬虫库urllib
     爬取携程指定起始位置、日期的机票信息
     缺点：抓包分析难，js脚本太多，加密的参数（携程自称OceanBall）
     优点：快速，准确，易分析，灵活性强
@@ -125,18 +126,22 @@ def get_parameter(this_city, other_city, proxy_address, date1, date2):
     proxies = {
         "http": "http://{0}".format(proxy_address)
     }
+    proxy = urllib.request.ProxyHandler(proxies)
+    opener1 = urllib.request.build_opener(proxy)
+    urllib.request.install_opener(opener1)
+
     # 填充信息
     try:
-        response = requests.get(url=url, headers=headers, proxies=proxies, timeout=30)
-    except HTTPError or ConnectionError or Timeout or ConnectTimeout:
-        # TODO 待解决
-        print("在求参的时候失去响应！！！请求地址为 {0} ".format(url))
+        request = urllib.request.Request(url=url, headers=headers, method="GET")
+        response = urllib.request.urlopen(request, timeout=30)
+    except:
+        print("在求参的时候失去响应 ,请求地址为 {0} ".format(url))
         return 0
 
     # 请求
-    if response.status_code == 200:
+    if response.status == 200:
         # bs4解析dom
-        response_dom = response.text
+        response_dom = response.read().decode("gbk")
         bs_obj = BeautifulSoup(response_dom, 'html.parser')
         # 进行查找该脚本段
         try:
@@ -160,22 +165,8 @@ def get_parameter(this_city, other_city, proxy_address, date1, date2):
         rk = num_str + rk
         r = pp[-1][27:len(pp[-1]) - 3]
 
-        # 将CookieJar转为字典：
-        cookies = requests.utils.dict_from_cookiejar(response.cookies)
-        # 将字典转为CookieJar：
-        cookies = requests.utils.cookiejar_from_dict(cookies, cookiejar=None, overwrite=True)
-        # 其中cookie_dict是要转换字典
-
-        # 转换完之后就可以把它赋给cookies
-        # 并传入到session中
-        session = requests.Session()
-        # 使用会话
-        # 填充信息
-        session.cookies = cookies
-        session.proxies = proxies
         headers = {
             "Accept": "*/*",
-            "Accept-Encoding": "gzip, deflate",
             "Accept-Language": "zh-CN,zh;q=0.9",
             "Connection": "keep-alive",
             'Host': "flights.ctrip.com",
@@ -183,7 +174,11 @@ def get_parameter(this_city, other_city, proxy_address, date1, date2):
                           "65.0.3325.181 Safari/537.36",
             'Referer': "http://flights.ctrip.com/booking/%s-%s---D-adu-1/?dayoffset=0&ddate1=%s&ddate2=%s" % (
                 this_city, other_city, date1, date2)}
-        session.headers = headers
+        # 添加cookie
+        cookie = http.cookiejar.CookieJar()
+        cookie_process = urllib.request.HTTPCookieProcessor(cookie)
+        opener = urllib.request.build_opener(cookie_process)
+        urllib.request.install_opener(opener)
 
         # 构造url参数
         url_dict = {
@@ -204,19 +199,20 @@ def get_parameter(this_city, other_city, proxy_address, date1, date2):
         url = "http://flights.ctrip.com/domesticsearch/search/SearchFirstRouteFlights?" + url_data
 
         try:
-            # 使用会话打开连接，可保持cookie
-            session_res = session.get(url=url, timeout=30)
-        except HTTPError or ConnectionError or Timeout or ConnectTimeout:
-            print("-_-||，失去响应!!!，url地址为 {0} ".format(url))
+            request = urllib.request.Request(url=url, headers=headers, method="GET")
+            response = urllib.request.urlopen(request, timeout=30)
+        except:
+            # TODO 待解决
+            print("-_-||，失去响应，url地址为 {0} ".format(url))
             return 2
         # 返会响应的内容
-        if session_res.status_code == 200:
-            return session_res.text
+        if response.status == 200:
+            return response.read().decode("gbk")
         else:
-            print("响应错误，响应码{0}".format(session_res.status_code))
+            print("响应错误，响应码{0}".format(response.status))
             return 5
     else:
-        print("响应失败！响应码{0}".format(response.status_code))
+        print("响应失败！响应码{0}".format(response.status))
         return 3
 
 
@@ -250,7 +246,7 @@ if __name__ == '__main__':
     return_date = '2018-05-10'
 
     # 将航班信息保存到文本
-    filename = r"../resource/results1.txt"
+    filename = r"../resource/results2.txt"
     save_msg = open(filename, "a+", encoding="utf-8")
 
     # 读取城市信息
@@ -278,7 +274,7 @@ if __name__ == '__main__':
     ip_msg.close()
 
     # 被封ip集
-    ban_ip = open("../resource/ban_ip.txt", "a+", encoding="utf-8")
+    ban_ip = open("../resource/ban_ip2.txt", "a+", encoding="utf-8")
     """
     在指定出发日期内访问，遍历所有城市，两两之间的航班信息
     """

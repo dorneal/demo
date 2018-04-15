@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 # coding:utf-8
-# Filename:demo5.py
+# Filename:selenium_spider.py
 # Author:黄鹏
 # Time:2018.04.10 12:19
 import http.cookiejar
@@ -19,6 +19,7 @@ from selenium.webdriver import DesiredCapabilities
 from selenium.webdriver.common.proxy import ProxyType, Proxy
 
 """
+    未完善
     利用PhantomJs 模拟搜索，得到响应的页面内容，
     获取脚本段里面的url参数，构造一个新的url，
     再使用urllib进行连接，获取到json数据，然后进行解析提取

@@ -8,6 +8,9 @@ import os
 
 import re
 
+"""
+修改该目录下的文件名，替换文件中的某些内容
+"""
 path = r"C:\Users\Administrator\Desktop\workspace\day0413\data\\"
 
 # 获取该目录下所有文件，存入列表中

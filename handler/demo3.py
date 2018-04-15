@@ -14,7 +14,7 @@ from urllib.request import urlopen
 from lxml import etree
 
 """
-    爬取携程指定起始位置、日期的机票信息
+    为完善版
 """
 
 
