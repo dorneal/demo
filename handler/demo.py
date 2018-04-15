@@ -5,7 +5,6 @@
 # Time:2018.04.12 10:15
 import json
 import random
-import socket
 import telnetlib
 import urllib
 from urllib import parse

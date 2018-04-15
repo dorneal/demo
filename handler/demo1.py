@@ -6,7 +6,6 @@
 import http.cookiejar
 import json
 import random
-import socket
 import telnetlib
 import urllib
 from urllib import parse
