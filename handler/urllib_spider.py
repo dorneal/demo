@@ -44,6 +44,8 @@ def get_flight_msg(dict_content):
         if dict_content['Error']['Code'] == 103:
             print(dict_content['Error']['Message'])
             return 0
+        if dict_content['Error']['Code'] == 102:
+            return 0
         if dict_content['Error']['Code'] == 1004:
             print("IP被封！")
             return 1
@@ -141,7 +143,11 @@ def get_parameter(this_city, other_city, proxy_address, date1, date2):
     # 请求
     if response.status == 200:
         # bs4解析dom
-        response_dom = response.read().decode("gbk")
+        try:
+            response_dom = response.read().decode("gbk")
+        except:
+            print("读取失去响应！")
+            return 0
         bs_obj = BeautifulSoup(response_dom, 'html.parser')
         # 进行查找该脚本段
         try:
@@ -241,7 +247,7 @@ def test_proxy_ip(ip_pool):
 
 if __name__ == '__main__':
     # 出发日期
-    dates = ['2018-04-16']
+    dates = ['2018-04-26']
     # 返程日期
     return_date = '2018-05-10'
 
@@ -284,8 +290,8 @@ if __name__ == '__main__':
 
     # 在该日期下，双遍历（两城市之间的航班信息）
     for date in dates:
-        tag = 0
         for i in range(city_count):
+            tag = 0
             while True:
                 tag += 1
                 if tag > city_count:
@@ -295,11 +301,14 @@ if __name__ == '__main__':
                     # 获取加密url参数
                     res = get_parameter(city_num_list[i], city_num_list[tag], ip_and_port, date, return_date)
 
-                    if res == 0 or res == 1 or res == 2 or res == 3 or res == 4 or res == 5:
+                    if res == 0 or res == 2 or res == 3 or res == 4 or res == 5:
                         # 随机从代理池中选取一个代理ip，并测试是否可用
                         ip_and_port = test_proxy_ip(proxy_ip_pool)
                         # 重新从这个城市开始
                         tag -= 1
+                        continue
+                    elif res == 1:
+                        save_msg.write("国际航班")
                         continue
                     else:
                         # 写入两城市间名字
@@ -329,9 +338,9 @@ if __name__ == '__main__':
                             ip_and_port = test_proxy_ip(proxy_ip_pool)
                         elif results == 0:
                             save_msg.write("暂无航班信息\n")
-                        else:
-                            print("出现未知错误！{0}".format(results))
-                            tag -= 1
+                        # else:
+                        #     print("出现未知错误！{0}".format(results))
+                        #     tag -= 1
                         save_msg.write("\n")
                     save_msg.flush()
     save_msg.close()
