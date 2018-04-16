@@ -293,7 +293,6 @@ if __name__ == '__main__':
         for i in range(city_count):
             tag = 0
             while tag < city_count:
-                tag += 1
                 # 避免城市相同
                 if i != tag:
                     # 获取加密url参数
@@ -338,5 +337,7 @@ if __name__ == '__main__':
                             save_msg.write("暂无航班信息\n")
                         save_msg.write("\n")
                     save_msg.flush()
+                # 索引自增
+                tag += 1
     save_msg.close()
     ban_ip.close()
