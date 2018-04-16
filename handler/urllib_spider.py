@@ -291,12 +291,11 @@ if __name__ == '__main__':
 
     # 在该日期下，双遍历（两城市之间的航班信息）
     for date in dates:
+        # TODO 已拿到 阿泰勒跟阿克苏的信息，所以从下标2开始
         for i in range(1, city_count):
             tag = 0
-            while True:
+            while tag < city_count:
                 tag += 1
-                if tag > city_count:
-                    break
                 # 避免城市相同
                 if i != tag:
                     # 获取加密url参数

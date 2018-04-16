@@ -292,10 +292,8 @@ if __name__ == '__main__':
     for date in dates:
         for i in range(city_count):
             tag = 0
-            while True:
+            while tag < city_count:
                 tag += 1
-                if tag > city_count:
-                    break
                 # 避免城市相同
                 if i != tag:
                     # 获取加密url参数
