@@ -228,21 +228,22 @@ def test_proxy_ip(ip_pool):
     :param ip_pool: 代理池
     :return: ip and port
     """
-    # 随机从代理池中选出一个IP、Port
-    ip_port = random.choice(ip_pool)
-    ip = ip_port.split(":")[0]
-    port = ip_port.split(":")[1]
-    try:
-        telnetlib.Telnet(ip, port=port, timeout=5)
-    except:
-        # 该ip不可用时，删除当前这个，继续选取
-        ip_pool.remove(ip_port)
-        print("代理 {0} 不可用,IP代理池深度为：{1}".format(ip_port, len(ip_pool)))
-        test_proxy_ip(ip_pool)
-    else:
-        ip_pool.remove(ip_port)
-        print("当前使用代理:{0} ,IP代理池深度为：{1}".format(ip_port, len(ip_pool)))
-        return ip_port
+    while True:
+        # 随机从代理池中选出一个IP、Port
+        ip_port = random.choice(ip_pool)
+        ip = ip_port.split(":")[0]
+        port = ip_port.split(":")[1]
+        try:
+            telnetlib.Telnet(ip, port=port, timeout=5)
+        except:
+            # 该ip不可用时，删除当前这个，继续选取
+            print("代理 {0} 不可用,IP代理池深度为：{1}".format(ip_port, len(ip_pool)))
+            ip_pool.remove(ip_port)
+            continue
+        else:
+            print("当前使用代理:{0} ,IP代理池深度为：{1}".format(ip_port, len(ip_pool)))
+            if ip_port:
+                return ip_port
 
 
 if __name__ == '__main__':
@@ -252,7 +253,7 @@ if __name__ == '__main__':
     return_date = '2018-05-10'
 
     # 将航班信息保存到文本
-    filename = r"../resource/results2.txt"
+    filename = r"../resource/results3.txt"
     save_msg = open(filename, "a+", encoding="utf-8")
 
     # 读取城市信息
@@ -290,7 +291,7 @@ if __name__ == '__main__':
 
     # 在该日期下，双遍历（两城市之间的航班信息）
     for date in dates:
-        for i in range(city_count):
+        for i in range(1, city_count):
             tag = 0
             while True:
                 tag += 1
@@ -301,19 +302,13 @@ if __name__ == '__main__':
                     # 获取加密url参数
                     res = get_parameter(city_num_list[i], city_num_list[tag], ip_and_port, date, return_date)
 
-                    if res == 0 or res == 2 or res == 3 or res == 4 or res == 5:
+                    if res == 0 or res == 1 or res == 2 or res == 3 or res == 4 or res == 5:
                         # 随机从代理池中选取一个代理ip，并测试是否可用
                         ip_and_port = test_proxy_ip(proxy_ip_pool)
                         # 重新从这个城市开始
                         tag -= 1
                         continue
-                    elif res == 1:
-                        save_msg.write("国际航班")
-                        continue
                     else:
-                        # 写入两城市间名字
-                        save_msg.write("{0} 到 {1}\n".format(city_name_list[i], city_name_list[tag]))
-
                         # 进行航班信息加载及解析
                         results = get_flight_msg(res)
                         # 如果有航班信息
@@ -321,6 +316,8 @@ if __name__ == '__main__':
                             print("====={1}======{0}====={2}=====".format(date, city_name_list[i], city_name_list[tag]))
                             print(results)
                             # 将所有航班信息写入文本
+                            # 写入两城市间名字
+                            save_msg.write("{0} 到 {1}\n".format(city_name_list[i], city_name_list[tag]))
                             for result in results:
                                 # 中转城市
                                 if result['transfer'] == 1:
@@ -336,11 +333,12 @@ if __name__ == '__main__':
                             ban_ip.write("{0} IP被封！\n".format(ip_and_port))
                             ban_ip.flush()
                             ip_and_port = test_proxy_ip(proxy_ip_pool)
+                            tag -= 1
+                            continue
                         elif results == 0:
+                            # 写入两城市间名字
+                            save_msg.write("{0} 到 {1}\n".format(city_name_list[i], city_name_list[tag]))
                             save_msg.write("暂无航班信息\n")
-                        # else:
-                        #     print("出现未知错误！{0}".format(results))
-                        #     tag -= 1
                         save_msg.write("\n")
                     save_msg.flush()
     save_msg.close()

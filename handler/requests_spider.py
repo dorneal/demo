@@ -137,7 +137,10 @@ def get_parameter(this_city, other_city, proxy_address, date1, date2):
     # 请求
     if response.status_code == 200:
         # bs4解析dom
-        response_dom = response.text
+        try:
+            response_dom = response.text
+        except:
+            return 4
         bs_obj = BeautifulSoup(response_dom, 'html.parser')
         # 进行查找该脚本段
         try:
@@ -167,13 +170,9 @@ def get_parameter(this_city, other_city, proxy_address, date1, date2):
         cookies = requests.utils.cookiejar_from_dict(cookies, cookiejar=None, overwrite=True)
         # 其中cookie_dict是要转换字典
 
-        # 转换完之后就可以把它赋给cookies
-        # 并传入到session中
+        # 创建会话
         session = requests.Session()
-        # 使用会话
-        # 填充信息
-        session.cookies = cookies
-        session.proxies = proxies
+        # 另一个请求头
         headers = {
             "Accept": "*/*",
             "Accept-Encoding": "gzip, deflate",
@@ -184,7 +183,6 @@ def get_parameter(this_city, other_city, proxy_address, date1, date2):
                           "65.0.3325.181 Safari/537.36",
             'Referer': "http://flights.ctrip.com/booking/%s-%s---D-adu-1/?dayoffset=0&ddate1=%s&ddate2=%s" % (
                 this_city, other_city, date1, date2)}
-        session.headers = headers
 
         # 构造url参数
         url_dict = {
@@ -203,7 +201,9 @@ def get_parameter(this_city, other_city, proxy_address, date1, date2):
         # 加工构造出的url参数
         url_data = urllib.parse.urlencode(url_dict)
         url = "http://flights.ctrip.com/domesticsearch/search/SearchFirstRouteFlights?" + url_data
-
+        session.cookies = cookies
+        session.proxies = proxies
+        session.headers = headers
         try:
             # 使用会话打开连接，可保持cookie
             session_res = session.get(url=url, timeout=30)
@@ -227,21 +227,22 @@ def test_proxy_ip(ip_pool):
     :param ip_pool: 代理池
     :return: ip and port
     """
-    # 随机从代理池中选出一个IP、Port
-    ip_port = random.choice(ip_pool)
-    ip = ip_port.split(":")[0]
-    port = ip_port.split(":")[1]
-    try:
-        telnetlib.Telnet(ip, port=port, timeout=5)
-    except:
-        # 该ip不可用时，删除当前这个，继续选取
-        ip_pool.remove(ip_port)
-        print("代理 {0} 不可用,IP代理池深度为：{1}".format(ip_port, len(ip_pool)))
-        test_proxy_ip(ip_pool)
-    else:
-        ip_pool.remove(ip_port)
-        print("当前使用代理:{0} ,IP代理池深度为：{1}".format(ip_port, len(ip_pool)))
-        return ip_port
+    while True:
+        # 随机从代理池中选出一个IP、Port
+        ip_port = random.choice(ip_pool)
+        ip = ip_port.split(":")[0]
+        port = ip_port.split(":")[1]
+        try:
+            telnetlib.Telnet(ip, port=port, timeout=5)
+        except:
+            # 该ip不可用时，删除当前这个，继续选取
+            print("代理 {0} 不可用,IP代理池深度为：{1}".format(ip_port, len(ip_pool)))
+            ip_pool.remove(ip_port)
+            continue
+        else:
+            print("当前使用代理:{0} ,IP代理池深度为：{1}".format(ip_port, len(ip_pool)))
+            if ip_port:
+                return ip_port
 
 
 if __name__ == '__main__':
@@ -306,10 +307,7 @@ if __name__ == '__main__':
                         # 重新从这个城市开始
                         tag -= 1
                         continue
-                    else:
-                        # 写入两城市间名字
-                        save_msg.write("{0} 到 {1}\n".format(city_name_list[i], city_name_list[tag]))
-
+                    elif isinstance(res, str):
                         # 进行航班信息加载及解析
                         results = get_flight_msg(res)
                         # 如果有航班信息
@@ -317,6 +315,8 @@ if __name__ == '__main__':
                             print("====={1}======{0}====={2}=====".format(date, city_name_list[i], city_name_list[tag]))
                             print(results)
                             # 将所有航班信息写入文本
+                            # 写入两城市间名字
+                            save_msg.write("{0} 到 {1}\n".format(city_name_list[i], city_name_list[tag]))
                             for result in results:
                                 # 中转城市
                                 if result['transfer'] == 1:
@@ -332,11 +332,12 @@ if __name__ == '__main__':
                             ban_ip.write("{0} IP被封！\n".format(ip_and_port))
                             ban_ip.flush()
                             ip_and_port = test_proxy_ip(proxy_ip_pool)
+                            tag -= 1
+                            continue
                         elif results == 0:
+                            # 写入两城市间名字
+                            save_msg.write("{0} 到 {1}\n".format(city_name_list[i], city_name_list[tag]))
                             save_msg.write("暂无航班信息\n")
-                        # else:
-                        #     print("出现未知错误！{0}".format(results))
-                        #     tag -= 1
                         save_msg.write("\n")
                     save_msg.flush()
     save_msg.close()
