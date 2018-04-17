@@ -129,7 +129,7 @@ def get_parameter(this_city, other_city, proxy_address, date1, date2):
     # 填充信息
     try:
         response = requests.get(url=url, headers=headers, proxies=proxies, timeout=30)
-    except:
+    except Exception:
         # TODO 待解决
         print("在求参的时候失去响应！！！请求地址为 {0} ".format(url))
         return 0
@@ -139,7 +139,7 @@ def get_parameter(this_city, other_city, proxy_address, date1, date2):
         # bs4解析dom
         try:
             response_dom = response.text
-        except:
+        except Exception:
             return 4
         bs_obj = BeautifulSoup(response_dom, 'html.parser')
         # 进行查找该脚本段
@@ -207,7 +207,7 @@ def get_parameter(this_city, other_city, proxy_address, date1, date2):
         try:
             # 使用会话打开连接，可保持cookie
             session_res = session.get(url=url, timeout=30)
-        except:
+        except Exception:
             print("-_-||，失去响应!!!，url地址为 {0} ".format(url))
             return 2
         # 返会响应的内容
@@ -234,7 +234,7 @@ def test_proxy_ip(ip_pool):
         port = ip_port.split(":")[1]
         try:
             telnetlib.Telnet(ip, port=port, timeout=5)
-        except:
+        except Exception:
             # 该ip不可用时，删除当前这个，继续选取
             print("代理 {0} 不可用,IP代理池深度为：{1}".format(ip_port, len(ip_pool)))
             ip_pool.remove(ip_port)

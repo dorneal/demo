@@ -136,7 +136,7 @@ def get_parameter(this_city, other_city, proxy_address, date1, date2):
     try:
         request = urllib.request.Request(url=url, headers=headers, method="GET")
         response = urllib.request.urlopen(request, timeout=30)
-    except:
+    except Exception:
         print("在求参的时候失去响应 ,请求地址为 {0} ".format(url))
         return 0
 
@@ -145,7 +145,7 @@ def get_parameter(this_city, other_city, proxy_address, date1, date2):
         # bs4解析dom
         try:
             response_dom = response.read().decode("gbk")
-        except:
+        except Exception:
             print("读取失去响应！")
             return 0
         bs_obj = BeautifulSoup(response_dom, 'html.parser')
@@ -207,7 +207,7 @@ def get_parameter(this_city, other_city, proxy_address, date1, date2):
         try:
             request = urllib.request.Request(url=url, headers=headers, method="GET")
             response = urllib.request.urlopen(request, timeout=30)
-        except:
+        except Exception:
             # TODO 待解决
             print("-_-||，失去响应，url地址为 {0} ".format(url))
             return 2
@@ -235,7 +235,7 @@ def test_proxy_ip(ip_pool):
         port = ip_port.split(":")[1]
         try:
             telnetlib.Telnet(ip, port=port, timeout=5)
-        except:
+        except Exception:
             # 该ip不可用时，删除当前这个，继续选取
             print("代理 {0} 不可用,IP代理池深度为：{1}".format(ip_port, len(ip_pool)))
             ip_pool.remove(ip_port)
@@ -253,7 +253,7 @@ if __name__ == '__main__':
     return_date = '2018-05-10'
 
     # 将航班信息保存到文本
-    filename = r"../resource/results3.txt"
+    filename = r"../resource/results4.txt"
     save_msg = open(filename, "a+", encoding="utf-8")
 
     # 读取城市信息
@@ -292,7 +292,7 @@ if __name__ == '__main__':
     # 在该日期下，双遍历（两城市之间的航班信息）
     for date in dates:
         # TODO 已拿到 阿泰勒跟阿克苏的信息，所以从下标2开始
-        for i in range(1, city_count):
+        for i in range(2, city_count):
             tag = 0
             while tag < city_count:
                 # 避免城市相同
