@@ -247,12 +247,12 @@ def test_proxy_ip(ip_pool):
 
 if __name__ == '__main__':
     # 出发日期
-    dates = ['2018-04-26']
+    dates = ['2018-06-04']
     # 返程日期
-    return_date = '2018-05-10'
+    return_date = '2018-06-20'
 
     # 将航班信息保存到文本
-    filename = r"../resource/results1.txt"
+    filename = r"../resource/results2.txt"
     save_msg = open(filename, "a+", encoding="utf-8")
 
     # 读取城市信息

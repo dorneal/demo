@@ -248,12 +248,12 @@ def test_proxy_ip(ip_pool):
 
 if __name__ == '__main__':
     # 出发日期
-    dates = ['2018-04-26']
+    dates = ['2018-06-06']
     # 返程日期
-    return_date = '2018-05-10'
+    return_date = '2018-06-20'
 
     # 将航班信息保存到文本
-    filename = r"../resource/results4.txt"
+    filename = r"../resource/results3.txt"
     save_msg = open(filename, "a+", encoding="utf-8")
 
     # 读取城市信息
@@ -291,8 +291,7 @@ if __name__ == '__main__':
 
     # 在该日期下，双遍历（两城市之间的航班信息）
     for date in dates:
-        # TODO 已拿到 阿泰勒跟阿克苏的信息，所以从下标2开始
-        for i in range(2, city_count):
+        for i in range(city_count):
             tag = 0
             while tag < city_count:
                 # 避免城市相同
